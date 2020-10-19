@@ -1,3 +1,9 @@
+/*****
+ * 
+ * File containing the main Tab controller methods.
+ * 
+ */
+
 // Debugging functions.
 function log_tabs(tabs) {
     tabs.forEach(element => {

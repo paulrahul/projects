@@ -1,4 +1,6 @@
 /*
+ * File containing methods to interact with Store.
+ *
  * Tabs Object store format:
  *
  * url (string, <primary key>)
@@ -65,8 +67,13 @@ function writeTab(url, old_row, changes, dump=false) {
     if (old_row) {
         for (key in changes) {
             old_val = (key in old_row) ? old_row[key] : null;
-            new_row[key] = (old_val && old_val.length > 0) ?
-                           [old_val, changes[key]] : [changes[key]];
+
+            if (old_val) {
+                old_val.push(changes[key]);
+                new_row[key] = old_val;
+            } else {
+                new_row[key] = [changes[key]];
+            }            
         }
     }
     new_row_json = JSON.stringify(new_row);
