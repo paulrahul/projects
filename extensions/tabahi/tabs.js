@@ -30,6 +30,6 @@ chrome.tabs.onHighlighted.addListener(function(highlightInfo) {
 })
 
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
-    closeTab(tabId);
+    //closeTab(tabId);
 })
 

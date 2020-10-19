@@ -12,18 +12,18 @@
   },
   "browser_action": {
     "default_icon": {
-      "16": "images/get_started16.png",
-      "32": "images/get_started32.png",
-      "48": "images/get_started48.png",
-      "128": "images/get_started128.png"
+      "16": "images/tabahi-32bits-16.png",
+      "32": "images/tabahi-32bits-32.png",
+      "48": "images/tabahi-32bits-48.png",
+      "128": "images/tabahi-32bits-128.png"
     },
     "default_title": "Tabahi!"
   },
   "icons": {
-    "16": "images/get_started16.png",
-    "32": "images/get_started32.png",
-    "48": "images/get_started48.png",
-    "128": "images/get_started128.png"
+    "16": "images/tabahi-32bits-16.png",
+    "32": "images/tabahi-32bits-32.png",
+    "48": "images/tabahi-32bits-48.png",
+    "128": "images/tabahi-32bits-128.png"
   },
   "permissions": ["storage", "tabs"],
   "manifest_version": 2
