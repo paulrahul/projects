@@ -26,13 +26,35 @@ function millisToMin(ms) {
     return Math.floor(millisToSec(ms) / 60);
 }
 
+function removeNode(tab_id) {
+    // Link the previous and next nodes.
+    prev_id = tab_lru_cache[tab_id].prev;
+    next_id = tab_lru_cache[tab_id].next;
+
+    if (prev_id) {
+        tab_lru_cache[prev_id].next = next_id;
+    }
+
+    if (next_id) {
+        tab_lru_cache[next_id].prev = prev_id;
+    }
+}
+
 function moveToTail(tab_id) {
+    if (tab_id == tail_id) {
+        return;
+    }
     tab_lru_cache[tail_id].next = tab_id;
     tab_lru_cache[tab_id].prev = tail_id;
+    tab_lru_cache[tab_id].next = null;
     tail_id = tab_id;
 }
 
 function addTabEntry(tab_id, tab_url, now=null) {
+    if (tab_id in tab_lru_cache) {
+        console.log("Suspicious input; key " + tab_id + " already in cache.");
+        return;
+    }
     tab_lru_cache[tab_id] = {url: tab_url, next: null, prev: null};
     if (!head_id) {
         head_id = tail_id = tab_id;
@@ -50,28 +72,29 @@ function bumpTabEntry(tab_id, now=null) {
     if (millisToSec(now - last_visited_tab.ts) > MIN_TAB_FOCUS_TIME_SECS) {
         // Move previous tab to tail.
         last_tab_id = getLastVisitedTabId();
-        tab_lru_cache[last_tab_id].prev.next = tab_lru_cache[last_tab_id].next;
-        moveToTail(last_tab_id);
+        // console.log("current tab: " + tab_id + ", last tab: " + last_tab_id);
+        if (last_tab_id != tail_id) {
+            // console.log("Moving " + last_tab_id + " to tail.");
+            removeNode(last_tab_id);
+            moveToTail(last_tab_id);    
+        }
     } else {
         console.log("Tab " + getLastVisitedTabId() + " was not on focus.");
     }
 
-    setLastVisitedTabId(tab_id, ts=now);    
+    setLastVisitedTabId(tab_id, ts=now);
+    // printCache();
 }
 
 function removeTabEntry(tab_id, now=null) {
     if (head_id == tab_id) {
         // Head is being removed. Time to reassign head.
         head_id = tab_lru_cache[tab_id].next;
-    } else {
-        tab_lru_cache[tab_id].prev.next = tab_lru_cache[tab_id].next;
-    }
-
-    if (tail_id == tab_id) {
+    } else if (tail_id == tab_id) {
         // Tail is being removed. Time to reassign tail.
         tail_id = tab_lru_cache[tab_id].prev;
     }
-
+    removeNode(tab_id);
     delete tab_lru_cache[tab_id];    
     setLastVisitedTabId(tab_id, now);
 }
@@ -80,9 +103,9 @@ function GC() {
     // Cull the oldest tabs keeping back up to NUM_MIN_TABS.
     // Do not cull the current tab.
 
-    num_tabs = Object.keys(tab_lru_cache.length).length;
-    if (num_tabs <= MIN_TAB_FOCUS_TIME_SECS) {
-        console.log("No enough tabs to cull!");
+    num_tabs = Object.keys(tab_lru_cache).length;
+    if (num_tabs <= NUM_MIN_TABS) {
+        console.log("Not enough tabs to cull!");
         return;
     }
 
@@ -93,6 +116,15 @@ function GC() {
             removeTabEntry(head_id);
         }
     }
+}
+
+function clearCache() {
+    keys = Object.keys(tab_lru_cache);
+    for (k in keys) {
+        delete tab_lru_cache[k];
+    }
+    head_id = tail_id = null;
+    last_visited_tab = null;
 }
 
 function getLastVisitedTabId () {
@@ -126,12 +158,38 @@ function test() {
     for (i = 0; i < 5; ++i) {
         addTabEntry(i + 1, String.fromCharCode('A'.charCodeAt() + i), now);
     }
+    // Expected (h) 1, 2, 3, 4, 5 (t)
+    // printCache();
+
+    bumpTabEntry(4, now + 6000); // Tab 5 in focus (6 secs)
+    bumpTabEntry(3, now + 13000);  // Tab 4 in focus (7 secs)
+    bumpTabEntry(2, now + 16000);  // Tab 3 not in focus (3 secs)
+    // Expected (h) 1, 2, 3, 5, 4 (t)
     printCache();
 
-    bumpTabEntry(4, now + 1000);
-    bumpTabEntry(3, now + 1500);
-    bumpTabEntry(2, now + 1600);    
+    GC();
+    // So 2 tabs to be culled. Only Tab 1 will be culled since tab 2 is
+    // currently in focus.
+    // Expected (h) 2, 3, 5, 4 (t)    
+    printCache();
+
+    clearCache();
+    printCache();
+
+    addTabEntry(1, "A");
+    removeTabEntry(1);
+    printCache();
+
+    addTabEntry(1, "A");
+    addTabEntry(2, "B");    
+    removeTabEntry(1);
+    printCache();
+
+    addTabEntry(1, "A");
+    addTabEntry(2, "B");    
+    removeTabEntry(2);
     printCache();
 }
 
 test();
+console.log("Test done!");
