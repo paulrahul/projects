@@ -6,6 +6,7 @@
     "scripts": [
       "background.js",
       "tabs.js",
+      "tabs_cache.js",
       "tabs_store.js"
     ],
     "persistent": false

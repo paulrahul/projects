@@ -18,12 +18,55 @@ tab_lru_cache = {};  // { tab_id: {url, next, prev} }
 head_id = null;
 tail_id = null;
 
+// Cache internal or utility methods.
+
 function millisToSec(ms) {
     return Math.floor(ms / 1000);
 }
 
 function millisToMin(ms) {
     return Math.floor(millisToSec(ms) / 60);
+}
+
+function getCache() {
+    return {
+        cache: tab_lru_cache,
+        head_id: head_id,
+        tail_id: tail_id,
+        last_visited_tab: last_visited_tab
+    };
+}
+
+function setCache(store_cache=null) {
+    tab_lru_cache = store_cache.cache;
+    head_id = store_cache.head_id;
+    tail_id = store_cache.tail_id;
+    last_visited_tab = store_cache.last_visited_tab;
+}
+
+function reloadCache() {
+    if (!last_visited_tab) {
+        chrome.storage.sync.get("cache", function (items) {
+            for (i in items) {
+                setCache(JSON.parse(items[i]));
+            }
+        }); 
+    }
+}
+
+function flushCache() {
+    chrome.storage.sync.set({"cache": JSON.stringify(getCache())}, function() {
+    });
+    clearCache();
+}
+
+function clearCache() {
+    keys = Object.keys(tab_lru_cache);
+    for (k in keys) {
+        delete tab_lru_cache[k];
+    }
+    head_id = tail_id = null;
+    last_visited_tab = null;
 }
 
 function removeNode(tab_id) {
@@ -50,7 +93,19 @@ function moveToTail(tab_id) {
     tail_id = tab_id;
 }
 
+function getLastVisitedTabId () {
+    return last_visited_tab.id;
+}
+
+function setLastVisitedTabId (tab_id, ts=null) {
+    ts = ts ? ts : Date.now();
+    last_visited_tab = {id: tab_id, ts: ts};
+}
+
+// Cache CRUD methods.
+
 function addTabEntry(tab_id, tab_url, now=null) {
+    reloadCache();
     if (tab_id in tab_lru_cache) {
         console.log("Suspicious input; key " + tab_id + " already in cache.");
         return;
@@ -66,6 +121,8 @@ function addTabEntry(tab_id, tab_url, now=null) {
 }
 
 function bumpTabEntry(tab_id, now=null) {
+    reloadCache();
+
     // First check if the previous tab was in focus for enough time to deserve
     // a promotion.
     now = now ? now : Date.now();
@@ -87,6 +144,8 @@ function bumpTabEntry(tab_id, now=null) {
 }
 
 function removeTabEntry(tab_id, now=null) {
+    reloadCache();
+
     if (head_id == tab_id) {
         // Head is being removed. Time to reassign head.
         head_id = tab_lru_cache[tab_id].next;
@@ -99,41 +158,42 @@ function removeTabEntry(tab_id, now=null) {
     setLastVisitedTabId(tab_id, now);
 }
 
-function GC() {
+// Cache GC methods.
+
+function getTabsForGC() {
+    reloadCache();
+
     // Cull the oldest tabs keeping back up to NUM_MIN_TABS.
     // Do not cull the current tab.
 
     num_tabs = Object.keys(tab_lru_cache).length;
     if (num_tabs <= NUM_MIN_TABS) {
         console.log("Not enough tabs to cull!");
-        return;
+        return [];
     }
 
+    tabs_to_cull = [];
     num_tabs_to_cull = num_tabs - NUM_MIN_TABS;
     last_tab_id = getLastVisitedTabId();
     for (i = 0; i < num_tabs_to_cull; ++i) {
         if (head_id != last_tab_id) {
-            removeTabEntry(head_id);
+            tabs_to_cull.push(head_id);
         }
     }
+
+    return tabs_to_cull;
 }
 
-function clearCache() {
-    keys = Object.keys(tab_lru_cache);
-    for (k in keys) {
-        delete tab_lru_cache[k];
+function GC() {
+    // Cull the oldest tabs keeping back up to NUM_MIN_TABS.
+    // Do not cull the current tab.
+    tabs_to_cull = getTabsForGC();
+
+    if (tabs_to_cull) {
+        for (tab_id in tabs_to_cull) {
+            removeTabEntry(tab_id);
+        }
     }
-    head_id = tail_id = null;
-    last_visited_tab = null;
-}
-
-function getLastVisitedTabId () {
-    return last_visited_tab.id;
-}
-
-function setLastVisitedTabId (tab_id, ts=null) {
-    ts = ts ? ts : Date.now();
-    last_visited_tab = {id: tab_id, ts: ts};
 }
 
 // Test
@@ -191,5 +251,5 @@ function test() {
     printCache();
 }
 
-test();
-console.log("Test done!");
+// test();
+// console.log("Test done!");

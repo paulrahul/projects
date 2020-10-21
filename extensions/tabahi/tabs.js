@@ -14,10 +14,12 @@ function log_tabs(tabs) {
 // Functions
 
 function bootStrap() {
-    chrome.tabs.query({}, function(tabs) {
-        tabs.forEach(tab => {
-            createTab(tab);
-        });    
+    clearStore(function () {
+        chrome.tabs.query({}, function(tabs) {
+            tabs.forEach(tab => {
+                createTab(tab);
+            });    
+        });
     });
 
     // dumpStore(null);

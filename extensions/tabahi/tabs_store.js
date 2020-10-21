@@ -60,6 +60,14 @@ function getCategory(url) {
     return getTags(url);
 }
 
+function clearStore(cb) {
+    chrome.storage.sync.clear(cb);
+}
+
+function flushToStore() {
+    flushCache();
+}
+
 // Tab API methods.
 
 function writeTab(url, old_row, changes, dump=false) {
@@ -100,6 +108,7 @@ function createTab(tab) {
         pagein: []
     };
     writeTab(tab.url, null, new_row);
+    addTabEntry(tab.id, tab.url);
 }
 
 function visitTab(tabId) {
@@ -111,13 +120,9 @@ function visitTab(tabId) {
             }
         });
     });
+    bumpTabEntry(tabId);
 }
 
 function closeTab(tabId) {
-    chrome.tabs.get(tabId, function(tab) {
-        // TODO(BUG): Won't be able to get the tab from the tabs list
-        // since it's gone.
-        chrome.storage.sync.remove(tab.url, function() {
-        });
-    });
+    removeTabEntry(tabId);
 }
