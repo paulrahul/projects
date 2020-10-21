@@ -26,6 +26,6 @@
     "48": "images/tabahi-32bits-48.png",
     "128": "images/tabahi-32bits-128.png"
   },
-  "permissions": ["storage", "tabs"],
+  "permissions": ["notifications", "storage", "tabs"],
   "manifest_version": 2
 }

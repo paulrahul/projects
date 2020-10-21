@@ -7,6 +7,8 @@ GC_INTERVAL_MINS = 1;
 MIN_TAB_FOCUS_TIME_SECS = 5;  // Must be <= GC_INTERVAL_MINS
 NUM_MIN_TABS = 3;  // Minimum number of tabs to retain.
 
+last_gc_ts = null;
+
 last_visited_tab = null;  // {id, ts}
 
 // Tabs LRU linked list has nodes of the following structure:
@@ -33,7 +35,8 @@ function getCache() {
         cache: tab_lru_cache,
         head_id: head_id,
         tail_id: tail_id,
-        last_visited_tab: last_visited_tab
+        last_visited_tab: last_visited_tab,
+        last_gc_ts: last_gc_ts
     };
 }
 
@@ -42,6 +45,7 @@ function setCache(store_cache=null) {
     head_id = store_cache.head_id;
     tail_id = store_cache.tail_id;
     last_visited_tab = store_cache.last_visited_tab;
+    last_gc_ts = store_cache.last_gc_ts;
 }
 
 function reloadCache() {
@@ -67,6 +71,7 @@ function clearCache() {
     }
     head_id = tail_id = null;
     last_visited_tab = null;
+    last_gc_ts = null;
 }
 
 function removeNode(tab_id) {
@@ -100,6 +105,11 @@ function getLastVisitedTabId () {
 function setLastVisitedTabId (tab_id, ts=null) {
     ts = ts ? ts : Date.now();
     last_visited_tab = {id: tab_id, ts: ts};
+}
+
+function setLastGCTs(ts=null) {
+    ts = ts ? ts : Date.now();
+    last_gc_ts = ts;  
 }
 
 // Cache CRUD methods.
@@ -160,8 +170,20 @@ function removeTabEntry(tab_id, now=null) {
 
 // Cache GC methods.
 
-function getTabsForGC() {
+function getTabsForGC(force=false) {
     reloadCache();
+
+    // First check if enough time has passed since last GC unless this is a
+    // force GC.
+    if (!force && last_gc_ts) {
+        now = Date.now();
+        time_since_last_gc = millisToMin(now - last_gc_ts);
+        if (time_since_last_gc < GC_INTERVAL_MINS) {
+            console.log("Not enough time since last GC. " +
+                        "Time since last GC(mins): " + time_since_last_gc);
+            return {};
+        }
+    }
 
     // Cull the oldest tabs keeping back up to NUM_MIN_TABS.
     // Do not cull the current tab.
@@ -169,16 +191,15 @@ function getTabsForGC() {
     num_tabs = Object.keys(tab_lru_cache).length;
     if (num_tabs <= NUM_MIN_TABS) {
         console.log("Not enough tabs to cull!");
-        return [];
+        return {};
     }
 
-    tabs_to_cull = [];
+    tabs_to_cull = {};
     num_tabs_to_cull = num_tabs - NUM_MIN_TABS;
-    last_tab_id = getLastVisitedTabId();
-    for (i = 0; i < num_tabs_to_cull; ++i) {
-        if (head_id != last_tab_id) {
-            tabs_to_cull.push(head_id);
-        }
+    curr_id = head_id;
+    for (i = 0; i < num_tabs_to_cull && curr_id; ++i) {
+        tabs_to_cull[curr_id] = tab_lru_cache[curr_id].url;
+        curr_id = tab_lru_cache[curr_id].next;
     }
 
     return tabs_to_cull;
@@ -194,6 +215,8 @@ function GC() {
             removeTabEntry(tab_id);
         }
     }
+
+    last_gc_ts = Date.now();
 }
 
 // Test
@@ -204,8 +227,8 @@ function printCache() {
     ret = '';
     i = 0;
     while (curr_id) {
-        // ret += (JSON.stringify(tab_lru_cache[curr_id]) + ", ");
-        ret += (curr_id + ", ");        
+        ret += (JSON.stringify(tab_lru_cache[curr_id]) + ", ");
+        // ret += (curr_id + ", ");        
         curr_id = tab_lru_cache[curr_id].next;
         i++;
     }

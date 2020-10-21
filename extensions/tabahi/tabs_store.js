@@ -65,6 +65,7 @@ function clearStore(cb) {
 }
 
 function flushToStore() {
+    console.log("Flushing to Store!");
     flushCache();
 }
 
@@ -116,7 +117,7 @@ function visitTab(tabId) {
         chrome.storage.sync.get(tab.url, function(items) {
             for (i in items) {
                 writeTab(tab.url, JSON.parse(items[i]),
-                        {visits: Date.now()}, dump=true);
+                        {visits: Date.now()}, dump=false);
             }
         });
     });
