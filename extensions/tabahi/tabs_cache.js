@@ -50,6 +50,7 @@ function setCache(store_cache=null) {
 
 function reloadCache() {
     if (!last_visited_tab) {
+        console.log("Reloading cache..");
         chrome.storage.sync.get("cache", function (items) {
             for (i in items) {
                 setCache(JSON.parse(items[i]));
@@ -112,6 +113,16 @@ function setLastGCTs(ts=null) {
     last_gc_ts = ts;  
 }
 
+function getTabURL(tab_id) {
+    reloadCache();
+
+    if (tab_id in tab_lru_cache) {
+        return tab_lru_cache[tab_id].url;
+    }
+
+    return null;
+}
+
 // Cache CRUD methods.
 
 function addTabEntry(tab_id, tab_url, now=null) {
@@ -146,7 +157,7 @@ function bumpTabEntry(tab_id, now=null) {
             moveToTail(last_tab_id);    
         }
     } else {
-        console.log("Tab " + getLastVisitedTabId() + " was not on focus.");
+        // console.log("Tab " + getLastVisitedTabId() + " was not on focus.");
     }
 
     setLastVisitedTabId(tab_id, ts=now);

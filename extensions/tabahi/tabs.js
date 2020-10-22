@@ -47,13 +47,17 @@ function tabsGC() {
     tabs_to_cull = getTabsForGC();
 
     if (tabs_to_cull && Object.keys(tabs_to_cull).length > 0) {
-        tabs_url = Object.values(tabs_to_cull);
-        msg = "Paged out tabs: " + tabs_url;
-        // chrome.tabs.remove(Object.keys(tabs_to_cull), function() {
-        //     console.log("Paged out tabs: " + tabs_url);    
-        // });
+        msg = "Paged out tabs: ";
+        for (let tab_id in tabs_to_cull) {
+            // chrome.tabs.remove(tab_id, function() {
+            //     console.log("Removed tab: " + tabs_to_cull[tab_id]);
+            // });
+            updateTab(tab_id, {pageout: Date.now()});
+            msg += tabs_to_cull[tab_id] + ", ";
+        }
+
         // notify(msg);
-        // console.log(msg);
+        console.log(msg);
     }
     setLastGCTs(Date.now());
 }

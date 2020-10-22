@@ -92,8 +92,19 @@ function writeTab(url, old_row, changes, dump=false) {
         if (dump) {
             dumpStore();
         }
-        // console.log('Value of ' + url + ' is set.');
+        // console.log('Value of ' + url + ' is set to ' + new_row_json);
     });
+}
+
+function updateTab(tab_id, update, dump=false) {
+    let tab_url = getTabURL(tab_id);
+    // console.log("Cache tab url: " + tab_url);
+    chrome.storage.sync.get(tab_url, function(items) {
+        for (i in items) {
+            writeTab(tab_url, JSON.parse(items[i]),
+                    update, dump);
+        }
+    });    
 }
 
 function createTab(tab) {
@@ -112,18 +123,20 @@ function createTab(tab) {
     addTabEntry(tab.id, tab.url);
 }
 
-function visitTab(tabId) {
-    chrome.tabs.get(tabId, function(tab) {
-        chrome.storage.sync.get(tab.url, function(items) {
-            for (i in items) {
-                writeTab(tab.url, JSON.parse(items[i]),
-                        {visits: Date.now()}, dump=false);
-            }
-        });
-    });
-    bumpTabEntry(tabId);
+function visitTab(tab_id) {
+    updateTab(tab_id, {visits: Date.now()}, dump=false);
+    bumpTabEntry(tab_id);
 }
 
-function closeTab(tabId) {
-    removeTabEntry(tabId);
+function closeTab(tab_id) {
+    updateTab(tab_id, {closed: Date.now()});
+    removeTabEntry(tab_id);
+}
+
+function getPageinTabs() {
+    // chrome.storage.sync.get(query, function(items) {
+    //     for (i in items) {
+    //         console.log(i + ": " + items[i]);
+    //     }
+    // });  
 }
