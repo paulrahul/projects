@@ -128,7 +128,8 @@ function getTabURL(tab_id) {
 function addTabEntry(tab_id, tab_url, now=null) {
     reloadCache();
     if (tab_id in tab_lru_cache) {
-        console.log("Suspicious input; key " + tab_id + " already in cache.");
+        console.log("Suspicious input; key " + tab_id + " already in cache " +
+                    "with value: " + JSON.stringify(tab_lru_cache[tab_id]));
         return;
     }
     tab_lru_cache[tab_id] = {url: tab_url, next: null, prev: null};

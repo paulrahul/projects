@@ -21,6 +21,8 @@ TAGS = {
     "communication": ["mail"]
 };
 
+DISALLOWED_TABS = ["chrome://newtab/"];
+
 // Debugging methods.
 function dumpStore(query) {
     chrome.storage.sync.get(query, function(items) {
@@ -96,15 +98,34 @@ function writeTab(url, old_row, changes, dump=false) {
     });
 }
 
-function updateTab(tab_id, update, dump=false) {
-    let tab_url = getTabURL(tab_id);
+function updateTab(tab_id, update, dump=false, url=null) {
+    let tab_url = url;
+    if (!tab_url) {
+        tab_url = getTabURL(tab_id);
+    }
+
+    if (!tab_url) {
+        console.log("Null URL for tab_id: " + tab_id +
+                    ", updates: " + JSON.stringify(update));
+        return false;
+    }
+
+    if (DISALLOWED_TABS.includes(tab_url)) {
+        console.log("Not writing " + tab_url);
+        return false;
+    }
+
     // console.log("Cache tab url: " + tab_url);
     chrome.storage.sync.get(tab_url, function(items) {
-        for (i in items) {
-            writeTab(tab_url, JSON.parse(items[i]),
-                    update, dump);
+        if (items && Object.keys(items).length > 0) {
+            // console.log("Row to update: " + tab_url + ": " + items[tab_url]);
+            writeTab(tab_url, JSON.parse(items[tab_url]),
+                     update, dump);
+        } else {
+            writeTab(tab_url, null, update, dump);
         }
-    });    
+    });
+    return true;      
 }
 
 function createTab(tab) {
@@ -119,24 +140,28 @@ function createTab(tab) {
         pageout: [],
         pagein: []
     };
-    writeTab(tab.url, null, new_row);
-    addTabEntry(tab.id, tab.url);
+
+    success = updateTab(tab_id=null, new_row, dump=false, url=tab.url);
+    // writeTab(tab.url, null, new_row);
+    if (success) {
+        addTabEntry(tab.id, tab.url);
+    }
 }
 
 function visitTab(tab_id) {
-    updateTab(tab_id, {visits: Date.now()}, dump=false);
-    bumpTabEntry(tab_id);
+    success = updateTab(tab_id, {visits: Date.now()}, dump=false);
+    if (success) {
+        bumpTabEntry(tab_id);        
+    }
 }
 
 function closeTab(tab_id) {
-    updateTab(tab_id, {closed: Date.now()});
-    removeTabEntry(tab_id);
+    success = updateTab(tab_id, {closed: Date.now()});
+    if (success) {
+        removeTabEntry(tab_id);        
+    }
 }
 
-function getPageinTabs() {
-    // chrome.storage.sync.get(query, function(items) {
-    //     for (i in items) {
-    //         console.log(i + ": " + items[i]);
-    //     }
-    // });  
+function getAllStoreTabs(cb) {
+    chrome.storage.sync.get(query, cb);
 }
