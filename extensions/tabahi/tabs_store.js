@@ -63,7 +63,33 @@ function getCategory(url) {
 }
 
 function clearStore(cb) {
-    chrome.storage.sync.clear(cb);
+    // Fetch everything from sync.store and then flush to them to the DB, after
+    // which, clear the sync.store.
+    getAllStoreTabs(function(items) {
+        rows = {};
+        for (url in items) {
+            // row = JSON.parse(items[url]);
+            rows[url] = items[url];
+        }
+        // rows = JSON.stringify(rows);
+        // console.log("Writing to local storage: " + JSON.stringify(rows));
+        chrome.storage.local.set(rows, function() {
+            // console.log("Done writing locally");
+            chrome.storage.sync.clear(cb);            
+        });    
+
+        // rows = [];
+        // for (url in items) {
+        //     new_row = JSON.parse(items[url]);;
+        //     new_row[url] = url;
+        //     rows.push(new_row);
+        // }
+
+        // db_interface.write(TABS_TABLE, rows, function(err) {
+        //     if (!err) chrome.storage.sync.clear(cb);
+        //     else cb();
+        // });
+    });
 }
 
 function flushToStore() {
@@ -78,12 +104,20 @@ function writeTab(url, old_row, changes, dump=false) {
     if (old_row) {
         for (key in changes) {
             old_val = (key in old_row) ? old_row[key] : null;
+            new_val = changes[key];
+            if (Array.isArray(changes[key])) {
+                if (changes[key].length == 0) {
+                    new_val = null;
+                } else {
+                    new_val = changes[key][0];
+                }
+            } 
 
-            if (old_val) {
-                old_val.push(changes[key]);
+            if (old_val && new_val) {
+                old_val.push(new_val);
                 new_row[key] = old_val;
-            } else {
-                new_row[key] = [changes[key]];
+            } else if (new_val) {
+                new_row[key] = [new_val];
             }            
         }
     }
@@ -128,9 +162,10 @@ function updateTab(tab_id, update, dump=false, url=null) {
     return true;      
 }
 
-function createTab(tab) {
+function createTab(tab, pagein=false) {
     tags = getTags(tab.url);
     created = [Date.now()];
+    pagein = pagein ? Date.now() : [];
 
     new_row = {
         category: tags,
@@ -138,7 +173,7 @@ function createTab(tab) {
         closed: [],
         visits: [],
         pageout: [],
-        pagein: []
+        pagein: pagein
     };
 
     success = updateTab(tab_id=null, new_row, dump=false, url=tab.url);
@@ -163,5 +198,5 @@ function closeTab(tab_id) {
 }
 
 function getAllStoreTabs(cb) {
-    chrome.storage.sync.get(query, cb);
+    chrome.storage.sync.get(null, cb);
 }

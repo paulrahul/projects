@@ -14,6 +14,7 @@ function log_tabs(tabs) {
 // Functions
 
 function bootStrap() {
+    // db_interface.init();
     clearStore(function () {
         chrome.tabs.query({}, function(tabs) {
             tabs.forEach(tab => {
@@ -23,6 +24,8 @@ function bootStrap() {
     });
 
     runGC();
+    runScanner();
+    dumpToDB();
 
     // dumpStore(null);
 }
@@ -55,9 +58,10 @@ function tabsGC() {
     if (tabs_to_cull && Object.keys(tabs_to_cull).length > 0) {
         msg = "Paged out tabs: ";
         for (let tab_id in tabs_to_cull) {
-            // chrome.tabs.remove(tab_id, function() {
-            //     console.log("Removed tab: " + tabs_to_cull[tab_id]);
-            // });
+            console.log("Removing: " + tab_id);
+            chrome.tabs.remove(parseInt(tab_id), function() {
+                console.log("Removed tab: " + tabs_to_cull[tab_id]);
+            });
             updateTab(tab_id, {pageout: Date.now()});
             msg += tabs_to_cull[tab_id] + ", ";
         }
@@ -88,6 +92,24 @@ async function runGC() {
     }
 }
 
+async function runScanner() {
+    i = 0;
+    while (i < 10) {
+        await new Promise(r => setTimeout(r, 300000));  // sleep for 5 mins.
+        pageInTab();
+        i++;
+    }
+}
+
+async function dumpToDB() {
+    i = 0;
+    while (i < 10) {
+        await new Promise(r => setTimeout(r, 300000));  // sleep for 5 mins.
+        clearStore(function(){});
+        i++;
+    }
+}
+
 function pageInTab() {
     getAllStoreTabs(pageInTabCb);
 }
@@ -100,14 +122,15 @@ function pageInTabCb(items) {
     min_pageout_tab = null;
     for (url in items) {
         row = JSON.parse(items[url]);
-        if ("pageout" in row) {
+        // console.log("Scanning " + items[url]);
+        if ("pageout" in row ) {
             pageouts = row["pageout"];
             pageins = row["pagein"];
             closed = row["closed"];
 
-            max_po = Math.max(...pageouts);
-            max_pi = Math.max(...pageins);
-            max_c = Math.maxx(...closed);
+            max_po = pageouts && pageouts.length > 0 ? Math.max(...pageouts) : 0;
+            max_pi = pageins && pageins.length > 0 ? Math.max(...pageins) : 0;
+            max_c = closed && closed.length > 0 ? Math.max(...closed) : 0;
 
             if (max_po > max_pi && max_po > max_c) {
                 pagein_tabs[url] = max_po;

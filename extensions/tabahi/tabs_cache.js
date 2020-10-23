@@ -76,6 +76,11 @@ function clearCache() {
 }
 
 function removeNode(tab_id) {
+    if (!tab_id in tab_lru_cache) {
+        console.log("Could not find tab_id " + tab_id + " in tab_lru_cache");
+        return;
+    }
+
     // Link the previous and next nodes.
     prev_id = tab_lru_cache[tab_id].prev;
     next_id = tab_lru_cache[tab_id].next;
