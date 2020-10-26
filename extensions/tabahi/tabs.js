@@ -11,12 +11,30 @@ function log_tabs(tabs) {
     });
 }
 
+PAGE_IN_INTERVAL_MINS = 60;
+
 // Functions
+
+function postWebRequest(url, payload) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+
+    xhr.onreadystatechange = function() {
+        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+            console.log("Received dump call response: " + xhr.status);
+        }
+    }        
+    xhr.send(payload);    
+}
 
 function bootStrap() {
     // db_interface.init();
     clearStore(function () {
-        chrome.tabs.query({}, function(tabs) {
+        queryInfo = {
+            currentWindow: true
+        };
+
+        chrome.tabs.query(queryInfo, function(tabs) {
             tabs.forEach(tab => {
                 createTab(tab);
             });    
@@ -53,6 +71,7 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 })
 
 function tabsGC() {
+    console.log("Running GC");
     tabs_to_cull = getTabsForGC();
 
     if (tabs_to_cull && Object.keys(tabs_to_cull).length > 0) {
@@ -61,8 +80,9 @@ function tabsGC() {
             console.log("Removing: " + tab_id);
             chrome.tabs.remove(parseInt(tab_id), function() {
                 console.log("Removed tab: " + tabs_to_cull[tab_id]);
+                updateTab(tab_id, {pageout: Date.now()});
+                clearStore(function() {}, clear_store=false);
             });
-            updateTab(tab_id, {pageout: Date.now()});
             msg += tabs_to_cull[tab_id] + ", ";
         }
 
@@ -85,8 +105,10 @@ function notify(msg) {
 
 async function runGC() {
     i = 0;
-    while (i < 10) {
-        await new Promise(r => setTimeout(r, 60000));  // sleep for 1 min.
+    while (true) {
+        await new Promise(
+            r => setTimeout(r,
+                            GC_INTERVAL_MINS * 60 * 1000)); // sleep for 30 mins
         tabsGC();
         i++;
     }
@@ -94,8 +116,10 @@ async function runGC() {
 
 async function runScanner() {
     i = 0;
-    while (i < 10) {
-        await new Promise(r => setTimeout(r, 300000));  // sleep for 5 mins.
+    while (true) {
+        await new Promise(
+            r => setTimeout(r,
+                            PAGE_IN_INTERVAL_MINS * 60 * 1000)); // sleep for 60 mins.
         pageInTab();
         i++;
     }
@@ -103,8 +127,10 @@ async function runScanner() {
 
 async function dumpToDB() {
     i = 0;
-    while (i < 10) {
-        await new Promise(r => setTimeout(r, 300000));  // sleep for 5 mins.
+    while (true) {
+        await new Promise(
+            r => setTimeout(r,
+                            PAGE_IN_INTERVAL_MINS * 60 * 1000)); // sleep for 60 mins.
         clearStore(function(){});
         i++;
     }
@@ -122,7 +148,7 @@ function pageInTabCb(items) {
     min_pageout_tab = null;
     for (url in items) {
         row = JSON.parse(items[url]);
-        // console.log("Scanning " + items[url]);
+        console.log("Scanning " + url + ": " + items[url]);
         if ("pageout" in row ) {
             pageouts = row["pageout"];
             pageins = row["pagein"];

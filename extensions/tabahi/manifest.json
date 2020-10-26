@@ -27,6 +27,12 @@
     "48": "images/tabahi-32bits-48.png",
     "128": "images/tabahi-32bits-128.png"
   },
-  "permissions": ["notifications", "storage", "tabs"],
+  "permissions": [
+    "notifications",
+    "storage",
+    "tabs",
+
+    "http://localhost:8080/dump"
+  ],
   "manifest_version": 2
 }

@@ -3,7 +3,9 @@
  * tabs.
  */
 
-GC_INTERVAL_MINS = 1;
+TEST_MODE = false;
+
+GC_INTERVAL_MINS = 30;
 MIN_TAB_FOCUS_TIME_SECS = 5;  // Must be <= GC_INTERVAL_MINS
 NUM_MIN_TABS = 3;  // Minimum number of tabs to retain.
 
@@ -40,7 +42,11 @@ function getCache() {
     };
 }
 
-function setCache(store_cache=null) {
+function setCache(store_cache) {
+    if (!store_cache) {
+        console.log("Store cache is null!!");
+        return;
+    }
     tab_lru_cache = store_cache.cache;
     head_id = store_cache.head_id;
     tail_id = store_cache.tail_id;
@@ -49,6 +55,9 @@ function setCache(store_cache=null) {
 }
 
 function reloadCache() {
+    if (TEST_MODE) {
+        return;
+    }
     if (!last_visited_tab) {
         console.log("Reloading cache..");
         chrome.storage.sync.get("cache", function (items) {
@@ -66,6 +75,10 @@ function flushCache() {
 }
 
 function clearCache() {
+    if (!tab_lru_cache) {
+        console.log("tab_lru_cache is null!!");
+        return;
+    }
     keys = Object.keys(tab_lru_cache);
     for (k in keys) {
         delete tab_lru_cache[k];
@@ -214,18 +227,25 @@ function getTabsForGC(force=false) {
     tabs_to_cull = {};
     num_tabs_to_cull = num_tabs - NUM_MIN_TABS;
     curr_id = head_id;
+    last_tab_id = getLastVisitedTabId();
     for (i = 0; i < num_tabs_to_cull && curr_id; ++i) {
-        tabs_to_cull[curr_id] = tab_lru_cache[curr_id].url;
+        if (last_tab_id == curr_id) {
+            // Do not cull the current tab.
+            i--;
+        } else {
+            tabs_to_cull[curr_id] = tab_lru_cache[curr_id].url;
+        }
         curr_id = tab_lru_cache[curr_id].next;
     }
 
     return tabs_to_cull;
 }
 
-function GC() {
+function GC(force=false) {
+    console.log("Performing GC...");
     // Cull the oldest tabs keeping back up to NUM_MIN_TABS.
     // Do not cull the current tab.
-    tabs_to_cull = getTabsForGC();
+    tabs_to_cull = getTabsForGC(force);
 
     if (tabs_to_cull) {
         for (tab_id in tabs_to_cull) {
@@ -244,16 +264,20 @@ function printCache() {
     ret = '';
     i = 0;
     while (curr_id) {
-        ret += (JSON.stringify(tab_lru_cache[curr_id]) + ", ");
-        // ret += (curr_id + ", ");        
+        // ret += (JSON.stringify(tab_lru_cache[curr_id]) + ", ");
+        ret += (curr_id + ", ");        
         curr_id = tab_lru_cache[curr_id].next;
         i++;
     }
+
+    ret += "head_id: " + head_id + ", tail_id: " + tail_id;
 
     console.log(ret);
 }
 
 function test() {
+    TEST_MODE = true;
+
     now = 1000;
     for (i = 0; i < 5; ++i) {
         addTabEntry(i + 1, String.fromCharCode('A'.charCodeAt() + i), now);
@@ -267,28 +291,35 @@ function test() {
     // Expected (h) 1, 2, 3, 5, 4 (t)
     printCache();
 
-    GC();
+    GC(force=true);
     // So 2 tabs to be culled. Only Tab 1 will be culled since tab 2 is
     // currently in focus.
     // Expected (h) 2, 3, 5, 4 (t)    
     printCache();
 
-    clearCache();
+    // Add back Tab 1 and then run GC. This time, Tabs 2 and 3 should be culled,
+    // since they are oldest now and current tab is 1.
+    // Expected (h) 5, 4, 1 (t) 
+    addTabEntry(1, "A", now + 16001);
+    GC(force=true);
     printCache();
 
-    addTabEntry(1, "A");
-    removeTabEntry(1);
-    printCache();
+    // clearCache();
+    // printCache();
 
-    addTabEntry(1, "A");
-    addTabEntry(2, "B");    
-    removeTabEntry(1);
-    printCache();
+    // addTabEntry(1, "A");
+    // removeTabEntry(1);
+    // printCache();
 
-    addTabEntry(1, "A");
-    addTabEntry(2, "B");    
-    removeTabEntry(2);
-    printCache();
+    // addTabEntry(1, "A");
+    // addTabEntry(2, "B");    
+    // removeTabEntry(1);
+    // printCache();
+
+    // addTabEntry(1, "A");
+    // addTabEntry(2, "B");    
+    // removeTabEntry(2);
+    // printCache();
 }
 
 // test();

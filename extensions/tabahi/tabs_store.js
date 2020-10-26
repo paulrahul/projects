@@ -62,28 +62,33 @@ function getCategory(url) {
     return getTags(url);
 }
 
-function clearStore(cb) {
+function clearStore(cb, clear_store=true) {
     // Fetch everything from sync.store and then flush to them to the DB, after
     // which, clear the sync.store.
     getAllStoreTabs(function(items) {
-        rows = {};
+        payload = "";
+        rows = [];
+        store_rows = {};
         for (url in items) {
-            // row = JSON.parse(items[url]);
-            rows[url] = items[url];
-        }
-        // rows = JSON.stringify(rows);
-        // console.log("Writing to local storage: " + JSON.stringify(rows));
-        chrome.storage.local.set(rows, function() {
-            // console.log("Done writing locally");
-            chrome.storage.sync.clear(cb);            
-        });    
+            new_row = JSON.parse(items[url]);
+            new_row["url"] = url;
+            rows.push(new_row);
 
-        // rows = [];
-        // for (url in items) {
-        //     new_row = JSON.parse(items[url]);;
-        //     new_row[url] = url;
-        //     rows.push(new_row);
-        // }
+            store_rows[url] = items[url];
+
+            payload += url + ":" + items[url] + "\n";            
+        }
+
+        rows = JSON.stringify(rows);
+        // console.log("Writing to local storage: " + rows);
+
+        chrome.storage.local.set(store_rows, function() {
+            // console.log("Done writing locally");
+            postWebRequest("http://localhost:8080/dump", rows);
+            if (clear_store) {
+                chrome.storage.sync.clear(cb);
+            }
+        });
 
         // db_interface.write(TABS_TABLE, rows, function(err) {
         //     if (!err) chrome.storage.sync.clear(cb);
@@ -114,8 +119,13 @@ function writeTab(url, old_row, changes, dump=false) {
             } 
 
             if (old_val && new_val) {
-                old_val.push(new_val);
-                new_row[key] = old_val;
+                if (!Array.isArray(old_val)) {
+                    console.log("Scalar value found: " + key + ": " + old_row);
+                    old_val = new_val;
+                } else {
+                    old_val.push(new_val);
+                    new_row[key] = old_val;
+                }
             } else if (new_val) {
                 new_row[key] = [new_val];
             }            
@@ -184,7 +194,7 @@ function createTab(tab, pagein=false) {
 }
 
 function visitTab(tab_id) {
-    success = updateTab(tab_id, {visits: Date.now()}, dump=false);
+    success = updateTab(tab_id, {visits: Date.now()}, dump=true);
     if (success) {
         bumpTabEntry(tab_id);        
     }
