@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+message FocusObject {
+    message Medium {
+        // Required.
+        // The operating platform - Android / MacOS etc.
+        string platform = 1;
+
+        // Macbook / OnePlus etc.
+        string device = 2;
+    }
+
+    // Required.
+    string app = 1;
+
+    string name = 2;
+
+    // Required.
+    Medium medium = 3;
+
+    repeated int32 creations_ts = 4;
+
+    repeated int32 visits_ts = 5;
+
+    repeated int32 closures_ts = 6;
+}
