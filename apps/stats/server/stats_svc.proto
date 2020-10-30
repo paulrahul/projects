@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "stats.proto";
+
+message FocusWriteRequest {
+    // Required.
+    int32 request_id = 1;
+
+    // Required.
+    repeated FocusObject focus_objects = 2;
+}
+
+message FocusWriteResponse {
+    // Will be the same as the correspoing request's request_id.
+    int32 request_id = 1;
+}
+
+message FocusReadRequest {
+    string app = 1;
+
+    string name = 2;
+
+    FocusObject.Medium medium = 3;
+
+    // Defaults to start of Epoch.
+    int32 start_time = 4;
+
+    // Defaults to current time.
+    int32 end_time = 5;
+}
+
+message FocusReadResponse {
+    // Timestamp fields will be set only within the specified boundaries in the
+    // Read request.
+    repeated FocusObject focus_objects = 1;
+}
+
+service FocusStatsService {
+    // Creates a new Focus object or updates existing one.
+    rpc FocusWrite(FocusWriteRequest) returns (FocusWriteResponse);
+
+    rpc FocusRead(FocusReadRequest) returns (stream FocusReadResponse);
+}

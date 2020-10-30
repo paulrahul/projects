@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/any.proto";
+
 message FocusObject {
     message Medium {
         // Required.
@@ -9,6 +11,8 @@ message FocusObject {
         // Macbook / OnePlus etc.
         string device = 2;
     }
+
+    // (app, name) for the key. 
 
     // Required.
     string app = 1;
@@ -23,4 +27,6 @@ message FocusObject {
     repeated int32 visits_ts = 5;
 
     repeated int32 closures_ts = 6;
+
+    repeated google.protobuf.Any additional_details = 7;
 }
