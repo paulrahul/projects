@@ -29,17 +29,6 @@ cc_grpc_library(
     deps = [":stats_svc_cc_proto"],
 )
 
-cc_library(
-    name = "hello-time",
-    srcs = [
-        "foo/bar/baz.h",
-        "hello-time.cc",
-    ],
-    hdrs = ["hello-time.h"],
-    copts = ["-Ilib/foo"],
-    visibility = ["//main:__pkg__"],
-)
-
 cc_binary(
     name = "stats_server",
     srcs = [
