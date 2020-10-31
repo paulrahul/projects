@@ -28,3 +28,27 @@ cc_grpc_library(
     grpc_only = True,
     deps = [":stats_svc_cc_proto"],
 )
+
+cc_library(
+    name = "hello-time",
+    srcs = [
+        "foo/bar/baz.h",
+        "hello-time.cc",
+    ],
+    hdrs = ["hello-time.h"],
+    copts = ["-Ilib/foo"],
+    visibility = ["//main:__pkg__"],
+)
+
+cc_binary(
+    name = "stats_server",
+    srcs = [
+        "stats_server.cc",
+        "stats_server.h",
+    ],
+    deps = [
+        ":stats_svc_grpc",
+        # http_archive made this label available for binding
+        "@com_github_grpc_grpc//:grpc++",
+    ],
+)
