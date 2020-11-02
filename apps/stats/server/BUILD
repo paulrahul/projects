@@ -41,3 +41,16 @@ cc_binary(
         "@com_github_grpc_grpc//:grpc++",
     ],
 )
+
+cc_binary(
+    name = "stats_client",
+    srcs = [
+        "stats_client.cc",
+        "stats_client.h",
+    ],
+    deps = [
+        ":stats_svc_grpc",
+        # http_archive made this label available for binding
+        "@com_github_grpc_grpc//:grpc++",
+    ],
+)
