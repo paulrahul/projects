@@ -3,6 +3,7 @@
 using std::unique_ptr;
 
 using grpc::ClientAsyncResponseReaderInterface;
+using grpc::Server;
 using grpc::ServerContext;
 using grpc::ServerCompletionQueue;
 using grpc::Status;
@@ -16,11 +17,10 @@ class StatsServerImpl final : public FocusStatsService::Service {
         Status FocusWrite(ServerContext* context,
                           const FocusWriteRequest* request,
                           FocusWriteResponse* response);
-        
-        // std::unique_ptr<ClientAsyncResponseReaderInterface<FocusWriteResponse>>
-        //     AsyncFocusWrite(::grpc::ClientContext* context, const ::FocusWriteRequest& request, ::grpc::CompletionQueue* cq) {
 
+        void HandleRpcs();
     private:
-        //FocusStatsService::AsyncService service_;
+        unique_ptr<FocusStatsService::AsyncService> async_service_;
         unique_ptr<ServerCompletionQueue> cq_;
+        unique_ptr<Server> server_;
 };  
