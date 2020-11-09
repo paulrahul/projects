@@ -15,6 +15,18 @@ StatsServerImpl::StatsServerImpl()
     : async_service_(new FocusStatsService::AsyncService()) {
 }
 
+StatsServerImpl::~StatsServerImpl() {
+    cout << "Calling destructor.. " << endl;
+    server_->Shutdown();
+    cq_->Shutdown();
+
+    // Drain the queue.
+    void* ignored_tag; bool ignored_ok; 
+    while (cq_->Next(&ignored_tag, &ignored_ok)) {
+        cout << "Ignored tag: " << ignored_tag << endl;
+    }    
+}
+
 Status StatsServerImpl::FocusWrite(
     ServerContext* context, const FocusWriteRequest* request,
     FocusWriteResponse* response) {
@@ -50,7 +62,7 @@ void StatsServerImpl::HandleRpcs() {
         if (ok && got_tag == (void*)1) {
             cout << "Received a request from client: "
                  << req.ShortDebugString() << endl;
-            res.set_request_id(req.request_id());
+            res.set_request_id(789);
             status = Status::OK;
 
             responder.Finish(res, status, (void*)2);
@@ -59,10 +71,8 @@ void StatsServerImpl::HandleRpcs() {
 
     if (cq_->Next(&got_tag, &ok)) {
         cout << "Tag: " << got_tag << endl;
-        cout << "Shutting down server. " << endl;
-        server_->Shutdown();
-        cq_->Shutdown();
-    }
+        cout << "Shutting down server. " << endl;       
+    }  
 }
 
 void StatsServerImpl::Run() {

@@ -61,18 +61,17 @@ void StatsClient::SendAsyncRequest() {
     void* got_tag;
     bool ok = false;
 
-    while (cq.Next(&got_tag, &ok)) {
+    if (cq.Next(&got_tag, &ok)) {
         if (got_tag != (void*)1) {
             cout << "Unexpected tag obtained: " << got_tag << endl;
-            break;
         }
 
         if (!ok) {
             cout << "Completion Queue check unsuccessful" << endl;
-            break;
         }
 
         if (status.ok()) {
+            cout << "Tag: " << got_tag << endl;
             cout << "Received response: " << res.ShortDebugString() << endl;
         } else {
             cout << "Failed with error: " << status.error_code() << ": "

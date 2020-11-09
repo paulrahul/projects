@@ -12,6 +12,8 @@ class StatsServerImpl final : public FocusStatsService::Service {
     public:
         StatsServerImpl();
 
+        ~StatsServerImpl();
+
         void Run();
 
         Status FocusWrite(ServerContext* context,
