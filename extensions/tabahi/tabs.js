@@ -13,6 +13,10 @@ function log_tabs(tabs) {
 
 PAGE_IN_INTERVAL_MINS = 60;
 
+WATER_INTERVAL_MINS = 90;
+STANDUP_INTERVAL_MINS = 60;
+PUSHUPS_INTERVAL_MINS = 240;
+
 // Functions
 
 function postWebRequest(url, payload) {
@@ -29,45 +33,46 @@ function postWebRequest(url, payload) {
 
 function bootStrap() {
     // db_interface.init();
-    clearStore(function () {
-        queryInfo = {
-            currentWindow: true
-        };
+    // clearStore(function () {
+    //     queryInfo = {
+    //         currentWindow: true
+    //     };
 
-        chrome.tabs.query(queryInfo, function(tabs) {
-            tabs.forEach(tab => {
-                createTab(tab);
-            });    
-        });
-    });
+    //     chrome.tabs.query(queryInfo, function(tabs) {
+    //         tabs.forEach(tab => {
+    //             createTab(tab);
+    //         });    
+    //     });
+    // });
 
-    runGC();
-    runScanner();
-    dumpToDB();
+    // runGC();
+    // runScanner();
+    // dumpToDB();
+    notifyReminders();
 
     // dumpStore(null);
 }
 
 // Listeners.
 chrome.tabs.onCreated.addListener(function(tab) {
-    createTab(tab);
+    // createTab(tab);
 })
 
 chrome.tabs.onUpdated.addListener(function(tab_id, change_info, tab) {
-    if ("url" in change_info) {
-        createTab(tab);
-    }
+    // if ("url" in change_info) {
+    //     createTab(tab);
+    // }
 })
 
 chrome.tabs.onHighlighted.addListener(function(highlightInfo) {
-    tabIds = highlightInfo.tabIds
-    for (tabId of tabIds) {
-        visitTab(tabId);
-    }
+    // tabIds = highlightInfo.tabIds
+    // for (tabId of tabIds) {
+    //     visitTab(tabId);
+    // }
 })
 
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
-    closeTab(tabId);
+    // closeTab(tabId);
 })
 
 function tabsGC() {
@@ -100,40 +105,41 @@ function notify(msg) {
             message: msg,
             iconUrl: "images/tabahi-32bits-32.png"
         }, function(notificationId) {
+            // console.log("Last error:", chrome.runtime.lastError.message);
     });
 }
 
-async function runGC() {
+async function runPeriodicJob(job, interval_mins, num_runs=-1) {
     i = 0;
     while (true) {
         await new Promise(
             r => setTimeout(r,
-                            GC_INTERVAL_MINS * 60 * 1000)); // sleep for 30 mins
-        tabsGC();
+                            interval_mins * 60 * 1000));
+        job();
         i++;
+
+        if (num_runs > 0 && i == num_runs) {
+            break;
+        }
     }
+}
+
+async function runGC() {
+    runPeriodicJob(tabsGC, GC_INTERVAL_MINS);
 }
 
 async function runScanner() {
-    i = 0;
-    while (true) {
-        await new Promise(
-            r => setTimeout(r,
-                            PAGE_IN_INTERVAL_MINS * 60 * 1000)); // sleep for 60 mins.
-        pageInTab();
-        i++;
-    }
+    runPeriodicJob(pageInTab, PAGE_IN_INTERVAL_MINS);
 }
 
 async function dumpToDB() {
-    i = 0;
-    while (true) {
-        await new Promise(
-            r => setTimeout(r,
-                            PAGE_IN_INTERVAL_MINS * 60 * 1000)); // sleep for 60 mins.
-        clearStore(function(){});
-        i++;
-    }
+    runPeriodicJob(clearStore(function(){}), PAGE_IN_INTERVAL_MINS);    
+}
+
+async function notifyReminders() {
+    runPeriodicJob(function() {notify("Drink Water!!")}, WATER_INTERVAL_MINS);
+    // runPeriodicJob(function() {notify("Stand Up!!")}, STANDUP_INTERVAL_MINS);
+    // runPeriodicJob(function() {notify("Give me 10!!")}, PUSHUPS_INTERVAL_MINS);
 }
 
 function pageInTab() {
