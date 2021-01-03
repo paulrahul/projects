@@ -69,7 +69,7 @@ def _words(context):
 
   return _get_synonyms(val)
 
-def suggest(user_id, domain):
+def suggest_un(user_id, domain):
   user_details = _fetch_user_details(user_id)
   domain_lst = _derive_domain(domain)
 
@@ -140,4 +140,4 @@ def test():
 if __name__ == "__main__":
   #test()
 
-  print(suggest("123", "open.spotify.com"))
+  print(suggest_un("123", "open.spotify.com"))

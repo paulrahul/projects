@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from . import suggest
 
 def create_app():
     app = Flask(__name__)
@@ -9,7 +10,8 @@ def create_app():
     )
 
     @app.route("/suggest")
-    def suggest():
-        return "Suggestions coming up!"
+    def suggest_un():
+        un = suggest.suggest_un("123", "open.spotify.com")
+        return un
 
     return app
