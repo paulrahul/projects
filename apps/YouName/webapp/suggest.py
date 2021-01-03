@@ -3,6 +3,7 @@ Functions to return username suggestions. Currently, completely stateless
 functions. Might become a class and stuff later on.
 '''
 
+import datetime
 import random
 
 from PyDictionary import PyDictionary
@@ -34,6 +35,10 @@ def _get_synonyms(word, include_self=True):
   if include_self:
     synonyms.append(word)
   return _tokenize(_rand_select(synonyms))
+
+def _tokenize_date(date_str):
+  dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+  return [dt.year, dt.month, dt.day]
 
 # Suggestion methods
 def _music(context):
@@ -69,7 +74,13 @@ def _words(context):
 
   return _get_synonyms(val)
 
-def suggest_un(user_id, domain):
+def _numbers(context):
+  kind = context[0]
+  val = context[1]
+
+  return [str(val)]
+
+def suggest_un(user_id, domain, numbers=False, sc=False):
   user_details = _fetch_user_details(user_id)
   domain_lst = _derive_domain(domain)
 
@@ -106,13 +117,19 @@ def suggest_un(user_id, domain):
     # Now call the approppiate suggest method with the chosen Context
     tokens.extend(globals()["_" + next_pref]((context, val)))
 
+  if numbers:
+    # First check if the un already has a number or not.
+    val = _rand_select(user_details["numbers"])
+    tokens.extend(_numbers(("numbers", val)))
+
   return _combine(tokens)
 
 def _fetch_user_details(user_id):
-  return {
+  user_details = {
     "personal" : {
       "name" : ["Rahul Paul"],
-      "profession" : ["developer"]
+      "profession" : ["developer"],
+      "birthdate" : "1981-11-17"
     },
     "music" : {
       "genre" : ["folk", "soft rock"],
@@ -121,8 +138,16 @@ def _fetch_user_details(user_id):
     },
     "attitude" : ["freedom", "stoic", "humility", "simplicity"],
     "passion" : ["football", "coding", "driving", "reddit"],
-    "words" : ["chutzpah", "clairyoyant", "prescient"]
+    "words" : ["chutzpah", "clairyoyant", "prescient"],
+    "numbers" : ["8"]
   }
+
+  # Move the numbers from birthdate to the numbers key.
+  user_details["numbers"].extend(
+    _tokenize_date(user_details["personal"]["birthdate"]))
+  del user_details["personal"]["birthdate"]
+
+  return user_details
 
 def _derive_domain(domain):
   if "spotify" in domain:
@@ -140,4 +165,4 @@ def test():
 if __name__ == "__main__":
   #test()
 
-  print(suggest_un("123", "open.spotify.com"))
+  print(suggest_un("123", "open.spotify.com", numbers=True))

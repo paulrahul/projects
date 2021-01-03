@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, request
 from . import suggest
 
 def create_app():
@@ -11,7 +11,14 @@ def create_app():
 
     @app.route("/suggest")
     def suggest_un():
-        un = suggest.suggest_un("123", "open.spotify.com")
+        include_numbers = False
+        try:
+          include_numbers = request.args.get("number")
+        except KeyError:
+          pass
+
+        un = suggest.suggest_un(
+          "123", "open.spotify.com", numbers=include_numbers)
         return un
 
     return app
