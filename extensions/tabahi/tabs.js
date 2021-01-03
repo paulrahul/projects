@@ -105,7 +105,9 @@ function notify(msg) {
             message: msg,
             iconUrl: "images/tabahi-32bits-32.png"
         }, function(notificationId) {
-            // console.log("Last error:", chrome.runtime.lastError.message);
+            if (chrome.runtime.lastError) {
+                console.log("Last error:", chrome.runtime.lastError.message);
+            }
     });
 }
 
@@ -138,8 +140,8 @@ async function dumpToDB() {
 
 async function notifyReminders() {
     runPeriodicJob(function() {notify("Drink Water!!")}, WATER_INTERVAL_MINS);
-    // runPeriodicJob(function() {notify("Stand Up!!")}, STANDUP_INTERVAL_MINS);
-    // runPeriodicJob(function() {notify("Give me 10!!")}, PUSHUPS_INTERVAL_MINS);
+    runPeriodicJob(function() {notify("Stand Up!!")}, STANDUP_INTERVAL_MINS);
+    runPeriodicJob(function() {notify("Give me 10!!")}, PUSHUPS_INTERVAL_MINS);
 }
 
 function pageInTab() {
