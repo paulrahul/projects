@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, request
+from flask import Flask, render_template, request
 
 from . import db
 from . import model
@@ -14,10 +14,20 @@ def create_app():
 
     @app.route("/")
     def index():
-      return "Welcome to Rahul's Useless App"
+      return render_template("index.html")
 
-    @app.route("/suggest")
+    @app.route("/suggest", methods=["GET", "POST"])
     def suggest_un():
+      try:
+        uname = request.args.get("un")
+      except KeyError:
+        raise
+
+      try:
+        domain = request.args.get("domain")
+      except KeyError:
+        raise
+
       include_numbers = False
       try:
         include_numbers = request.args.get("number")
@@ -25,8 +35,14 @@ def create_app():
         pass
 
       un = suggest.suggest_un(
-        user_id="123", domain="open.spotify.com", numbers=include_numbers)
-      return un
+        user_id=uname, domain=domain, numbers=include_numbers)
+      return render_template(
+        "suggest.html",
+        message="Suggested username is %s" % un, uname=uname)
+
+    @app.route("/new_user")
+    def new_user():
+      return render_template("register.html")
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -38,8 +54,27 @@ def create_app():
       try:
         db.register_user(un, user_details)
       except:
-        return "Could not register right now. Try again later."
+        return render_template(
+          "info.html",
+          info_text="Could not register right now. Try again later.")
 
-      return "You are registered with username %s" % (un)
+      return render_template(
+        "info.html",
+        info_text="You are registered with username %s" % un)
+
+    @app.route("/login")
+    def login():
+      try:
+        uname = request.args.get("uname")
+        db.fetch_user(uname)
+      except KeyError:
+        return render_template(
+          "info.html", info_text="No username provided")
+      except:
+        return render_template(
+          "info.html", info_text="Unable to retrieve user %s." % uname)
+
+      return render_template(
+        "suggest.html", message="Hello %s" % uname, uname=uname)
 
     return app

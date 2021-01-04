@@ -1,0 +1,18 @@
+{{ message }}
+
+<p>Suggest a username for&nbsp;</p>
+<form action="/suggest">
+  <input type="hidden" id="un" name="un" value="{{ uname }}">
+
+  <input type="radio" id="music" name="domain" value="music">
+  <label for="music">Music</label><br>
+  <input type="radio" id="communication" name="domain" value="communication">
+  <label for="communication">Communication (emails / chat etc.)</label><br>
+
+  <br><br>
+  <input type="checkbox" name="number" value="true">
+  <label for="number"> Include numbers? </label><br><br>
+
+  <input type="submit" value="Submit">
+</form>
+<p><a href="/">Home</a></p>
