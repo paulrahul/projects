@@ -1,16 +1,32 @@
 import os
 import json
 import redis
+import sys
 
 redis_url = os.getenv('REDISTOGO_URL', 'redis://localhost:6379')
 redis = redis.from_url(redis_url)
 
 def register_user(uname, user_details):
   s_val = json.dumps(user_details)
-  redis.set(uname, s_val)
+
+  try:
+    redis.set(uname, s_val)
+  except:
+    print("Could not register user %s with details %s for: %s" %
+          (uname, s_val, sys.exc_info()[0]))
+    raise
 
 def fetch_user(uname):
-  d = redis.get(uname)
+  try:
+    d = redis.get(uname)
+  except:
+    print("Could not fetch user %s: %s" %
+          (uname, sys.exc_info()[0]))
+    raise
+
+  if not d:
+    raise Exception("Could not find user %s" % uname)
+
   return json.loads(d)
 
 def test():
@@ -31,11 +47,8 @@ def test():
     "numbers" : ["8"]
   }
 
-  s_val = json.dumps(user_details)
-  redis.set("testuser123", s_val)
-
-  d = redis.get("testuser123")
-  print(json.loads(d))
+  register_user("testuser567", user_details)
+  print(fetch_user("BobDylanFree"))
 
 if __name__ == "__main__":
   test()

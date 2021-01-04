@@ -1,6 +1,9 @@
 import os
 
 from flask import Flask, request
+
+from . import db
+from . import model
 from . import suggest
 
 def create_app():
@@ -15,40 +18,28 @@ def create_app():
 
     @app.route("/suggest")
     def suggest_un():
-        include_numbers = False
-        try:
-          include_numbers = request.args.get("number")
-        except KeyError:
-          pass
+      include_numbers = False
+      try:
+        include_numbers = request.args.get("number")
+      except KeyError:
+        pass
 
-        un = suggest.suggest_un(
-          user_id="123", domain="open.spotify.com", numbers=include_numbers)
-        return un
+      un = suggest.suggest_un(
+        user_id="123", domain="open.spotify.com", numbers=include_numbers)
+      return un
 
-    @app.route("/register", methods=["POST"])
+    @app.route("/register", methods=["GET", "POST"])
     def register():
-      user_details = {
-        "personal" : {
-          "name" : ["Rahul Paul"],
-          "profession" : ["developer"],
-          "birthdate" : "1981-11-17"
-        },
-        "music" : {
-          "genre" : ["folk", "soft rock"],
-          "artist" : ["Nick drake", "Tinariwen", "Bob Dylan", "Simon and Garfunkel"],
-          "song" : ["Northern Sky", "Pale blue eyes"]
-        },
-        "attitude" : ["freedom", "stoic", "humility", "simplicity"],
-        "passion" : ["football", "coding", "driving", "reddit"],
-        "words" : ["chutzpah", "clairyoyant", "prescient"],
-        "numbers" : ["8"]
-      }
-
       # First get all request data.
-
+      user_details = model.extract_registration_data(request, test=True)
 
       un = suggest.suggest_un(
          domain="open.spotify.com", ud=user_details)
-      return un
+      try:
+        db.register_user(un, user_details)
+      except:
+        return "Could not register right now. Try again later."
+
+      return "You are registered with username %s" % (un)
 
     return app

@@ -5,6 +5,7 @@ functions. Might become a class and stuff later on.
 
 import datetime
 import random
+import sys
 
 from PyDictionary import PyDictionary
 
@@ -100,12 +101,16 @@ def suggest_un(domain, user_id=None, numbers=False, sc=False, ud=None):
   LIMIT = 3
   tokens = []
   i = 0
+  preflen = len(pref)
   while True:
-    if i > 5 or len(tokens) >= LIMIT:
+    if len(tokens) >= LIMIT:
       break
 
-    next_pref = pref[i]
-    i += 1
+    if i >= preflen:
+      next_pref = _rand_select(list(user_details.keys()))
+    else:
+      next_pref = pref[i]
+      i += 1
     context = user_details[next_pref]
     if isinstance(context, dict):
       # Select a random key within the dict.
@@ -117,7 +122,12 @@ def suggest_un(domain, user_id=None, numbers=False, sc=False, ud=None):
       val = _rand_select(context)
 
     # Now call the approppiate suggest method with the chosen Context
-    tokens.extend(globals()["_" + next_pref]((context, val)))
+    try:
+      tokens.extend(globals()["_" + next_pref]((context, val)))
+    except:
+      print("Adding token for pref %s failed with %s" %
+            (next_pref, sys.exc_info()[0]))
+      continue
 
   if numbers:
     # First check if the un already has a number or not.
@@ -127,6 +137,44 @@ def suggest_un(domain, user_id=None, numbers=False, sc=False, ud=None):
   return _combine(tokens)
 
 def _fetch_user_details(user_id):
+  user_details = {
+    "personal" : {
+      "name" : ["Rahul Paul"],
+      "profession" : ["developer"],
+      "birthdate" : ["1981-11-17"]
+    },
+    "music" : {
+      "genre" : ["folk", "soft rock"],
+      "artist" : ["Nick drake", "Tinariwen", "Bob Dylan", "Simon and Garfunkel"],
+      "song" : ["Northern Sky", "Pale blue eyes"]
+    },
+    "attitude" : ["freedom", "stoic", "humility", "simplicity"],
+    "passion" : ["football", "coding", "driving", "reddit"],
+    "words" : ["chutzpah", "clairyoyant", "prescient"],
+    "numbers" : ["8"]
+  }
+
+  # Move the numbers from birthdate to the numbers key.
+  user_details["numbers"].extend(
+    _tokenize_date(user_details["personal"]["birthdate"][0]))
+  del user_details["personal"]["birthdate"]
+
+  return user_details
+
+def _derive_domain(domain):
+  if "spotify" in domain:
+    return ["music"]
+  elif "mail" in domain:
+    return ["communication"]
+
+  return ["communication"]
+
+def test():
+  suggest_un(
+    user_id="123", domain="open.spotify.com", numbers=include_numbers)
+
+if __name__ == "__main__":
+  #test()
   user_details = {
     "personal" : {
       "name" : ["Rahul Paul"],
@@ -144,27 +192,4 @@ def _fetch_user_details(user_id):
     "numbers" : ["8"]
   }
 
-  # Move the numbers from birthdate to the numbers key.
-  user_details["numbers"].extend(
-    _tokenize_date(user_details["personal"]["birthdate"]))
-  del user_details["personal"]["birthdate"]
-
-  return user_details
-
-def _derive_domain(domain):
-  if "spotify" in domain:
-    return ["music"]
-  elif "mail" in domain:
-    return ["communication"]
-
-  return ["communication"]
-
-def test():
-  d = dictionary.synonym("car")
-  d.sort()
-  print(d)
-
-if __name__ == "__main__":
-  #test()
-
-  print(suggest_un("open.spotify.com", user_id="123", numbers=True))
+  print(suggest_un(domain="open.spotify.com", user_id="123"))
