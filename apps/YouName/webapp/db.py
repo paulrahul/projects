@@ -29,6 +29,38 @@ def fetch_user(uname):
 
   return json.loads(d)
 
+def register_mallu_vote(name, vote):
+  KEY = "mallu_votes"
+
+  mallu_votes = None
+  try:
+    mallu_votes = redis.get(KEY)
+  except:
+    print("Could not fetch key %s: %s" %
+          (KEY, sys.exc_info()[0]))
+
+  if not mallu_votes:
+    mallu_votes = {}
+  else:
+    mallu_votes = json.loads(mallu_votes)
+
+  current_count = 0
+  try:
+    current_count = mallu_votes[name]
+  except KeyError:
+    pass
+
+  mallu_votes[name] = current_count + vote
+
+  s_val = json.dumps(mallu_votes)
+
+  try:
+    redis.set(KEY, s_val)
+  except:
+    print("Could not register vote %s with details %s for: %s" %
+          (name + ":" + str(vote), s_val, sys.exc_info()[0]))
+    raise
+
 def test():
   user_details = {
     "personal" : {

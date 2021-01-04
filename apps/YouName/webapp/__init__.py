@@ -4,6 +4,7 @@ from flask import Flask, render_template, request
 
 from . import db
 from . import model
+from . import mallu_names
 from . import suggest
 
 def create_app():
@@ -85,5 +86,21 @@ def create_app():
     @app.route("/about")
     def about():
       return render_template("about.html")
+
+    @app.route("/easteregg", methods=["GET", "POST"])
+    def easteregg():
+      try:
+        name = request.form["name"]
+      except KeyError:
+        name = None
+
+      if name:
+        if "mallu" in request.form:
+          db.register_mallu_vote(name, 1)
+        elif "notmallu" in request.form:
+          db.register_mallu_vote(name, -1)
+
+      name = mallu_names.generate_random_mallu_name()
+      return render_template("easteregg.html", name=name)
 
     return app
