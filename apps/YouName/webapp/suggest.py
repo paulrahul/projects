@@ -162,7 +162,7 @@ def _fetch_user_details(user_id):
   return user_details
 
 def _derive_domain(domain):
-  if "spotify" in domain:
+  if "spotify" in domain or "music" in domain:
     return ["music"]
   elif "mail" in domain:
     return ["communication"]

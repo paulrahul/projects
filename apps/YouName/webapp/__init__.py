@@ -44,13 +44,14 @@ def create_app():
     def new_user():
       return render_template("register.html")
 
-    @app.route("/register", methods=["GET", "POST"])
+    @app.route("/register", methods=["POST"])
     def register():
       # First get all request data.
-      user_details = model.extract_registration_data(request, test=True)
+      user_details = model.extract_registration_data(request)
+      print(user_details)
 
       un = suggest.suggest_un(
-         domain="open.spotify.com", ud=user_details)
+         domain="", ud=user_details)
       try:
         db.register_user(un, user_details)
       except:
