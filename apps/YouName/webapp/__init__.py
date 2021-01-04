@@ -34,8 +34,13 @@ def create_app():
       except KeyError:
         pass
 
-      un = suggest.suggest_un(
-        user_id=uname, domain=domain, numbers=include_numbers)
+      try:
+        ud = db.fetch_user(uname)
+        un = suggest.suggest_un(
+          ud=ud, domain=domain, numbers=include_numbers)
+      except:
+        raise
+
       return render_template(
         "suggest.html",
         message="Suggested username is %s" % un, uname=uname)
@@ -48,7 +53,6 @@ def create_app():
     def register():
       # First get all request data.
       user_details = model.extract_registration_data(request)
-      print(user_details)
 
       un = suggest.suggest_un(
          domain="", ud=user_details)
