@@ -9,6 +9,10 @@ def create_app():
         SECRET_KEY = os.environ.get("SECRET_KEY") or 'dev_key'
     )
 
+    @app.route("/")
+    def index():
+      return "Welcome to Rahul's Useless App"
+
     @app.route("/suggest")
     def suggest_un():
         include_numbers = False
@@ -18,7 +22,33 @@ def create_app():
           pass
 
         un = suggest.suggest_un(
-          "123", "open.spotify.com", numbers=include_numbers)
+          user_id="123", domain="open.spotify.com", numbers=include_numbers)
         return un
+
+    @app.route("/register", methods=["POST"])
+    def register():
+      user_details = {
+        "personal" : {
+          "name" : ["Rahul Paul"],
+          "profession" : ["developer"],
+          "birthdate" : "1981-11-17"
+        },
+        "music" : {
+          "genre" : ["folk", "soft rock"],
+          "artist" : ["Nick drake", "Tinariwen", "Bob Dylan", "Simon and Garfunkel"],
+          "song" : ["Northern Sky", "Pale blue eyes"]
+        },
+        "attitude" : ["freedom", "stoic", "humility", "simplicity"],
+        "passion" : ["football", "coding", "driving", "reddit"],
+        "words" : ["chutzpah", "clairyoyant", "prescient"],
+        "numbers" : ["8"]
+      }
+
+      # First get all request data.
+
+
+      un = suggest.suggest_un(
+         domain="open.spotify.com", ud=user_details)
+      return un
 
     return app

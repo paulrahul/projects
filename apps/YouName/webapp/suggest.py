@@ -80,8 +80,10 @@ def _numbers(context):
 
   return [str(val)]
 
-def suggest_un(user_id, domain, numbers=False, sc=False):
-  user_details = _fetch_user_details(user_id)
+def suggest_un(domain, user_id=None, numbers=False, sc=False, ud=None):
+  assert user_id or ud
+
+  user_details = ud or _fetch_user_details(user_id)
   domain_lst = _derive_domain(domain)
 
   pref = []
@@ -165,4 +167,4 @@ def test():
 if __name__ == "__main__":
   #test()
 
-  print(suggest_un("123", "open.spotify.com", numbers=True))
+  print(suggest_un("open.spotify.com", user_id="123", numbers=True))
