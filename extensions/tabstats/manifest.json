@@ -1,0 +1,37 @@
+{
+  "name": "MyTabStats",
+  "version": "1.0",
+  "description": "Analyse my tabs usage.",
+  "background": {
+    "scripts": [
+      "background.js",
+      "tabs.js",
+      "tabs_cache.js",
+      "tabs_db.js",
+      "tabs_store.js"
+    ],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "images/tabahi-32bits-16.png",
+      "32": "images/tabahi-32bits-32.png",
+      "48": "images/tabahi-32bits-48.png",
+      "128": "images/tabahi-32bits-128.png"
+    },
+    "default_title": "MyTabStats!"
+  },
+  "icons": {
+    "16": "images/tabahi-32bits-16.png",
+    "32": "images/tabahi-32bits-32.png",
+    "48": "images/tabahi-32bits-48.png",
+    "128": "images/tabahi-32bits-128.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+
+    "http://localhost:8080/dump"
+  ],
+  "manifest_version": 2
+}
