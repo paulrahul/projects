@@ -29,7 +29,15 @@ function dumpStore(query) {
     });
 }
 
+all_tabs = {}
+
 // Tab API methods.
+// Get all existing tabs
+chrome.tabs.query({}, function(results) {
+    results.forEach(function(tab) {
+        all_tabs[tab.id] = tab;
+    });
+});
 
 /*
 function clearStore(cb, clear_store=true) {
@@ -67,20 +75,51 @@ function clearStore(cb, clear_store=true) {
     });
 }*/
 
+function gcStore(db=null) {
+    getAllStoreTabs(function(items) {
+        rows = [];
+        del_keys = [];
+        prefix = "stats";
+        suffix_start = prefix.length;
+        for (key in items) {
+            if (!key.startsWith("stats")) {
+                continue;
+            }
+
+            new_row = JSON.parse(items[key]);
+            new_row["ts"] = key.substring(suffix_start);
+            rows.push(new_row);
+
+            del_keys.push(key);
+        }
+
+        console.log("Rows = " + JSON.stringify(rows));
+        if (db) {
+          // Send to DB here
+        }
+
+        // Delete the keys from the store.
+        removeStoreTabs(del_keys);
+    });
+}
+
 function writeTab(ts, url, event_type, platform, dump=false) {
     new_row = {
-        ts: ts,
+        url: url,
         event_type: event_type,
         platform: platform,
     };
     new_row_json = JSON.stringify(new_row);
     payload = {};
-    payload[url] = new_row_json;
+    key = "stats" + ts
+    payload[key] = new_row_json;
     chrome.storage.sync.set(payload, function() {
+        let log_payload = payload;
         if (dump) {
-            dumpStore();
+            // dumpStore();
+            gcStore();
         }
-        console.log('Value of ' + url + ' is set to ' + new_row_json);
+        // console.log('Written ' + JSON.stringify(log_payload));
     });
 }
 
@@ -106,7 +145,8 @@ function updateTab(tab_id, event_type, dump=false, url=null) {
     return true;
 }
 
-function createTab(tab, pagein=false) {
+function createTab(tab) {
+    all_tabs[tab.id] = tab;
     success = updateTab(tab_id=null, "created", dump=false, url=tab.url);
 }
 
@@ -115,19 +155,26 @@ function visitTab(tab_id) {
 }
 
 function closeTab(tab_id) {
-    success = updateTab(tab_id, "closed");
+    success = updateTab(tab_id, "closed", dump=false);
+    delete all_tabs[tab_id];
 }
 
 function getTabURL(tab_id) {
-  getTab(tab_id, function(tab) {
-    return tab.url;
-  });
+    if (tab_id in all_tabs) {
+        return all_tabs[tab_id].url;
+    }
+
+    return null;
 }
 
 function getTab(tab_id, cb) {
-    chrome.storage.sync.get(tab_id, cb);
+    chrome.tabs.get(tab_id, cb);
 }
 
 function getAllStoreTabs(cb) {
     chrome.storage.sync.get(null, cb);
+}
+
+function removeStoreTabs(keys) {
+    chrome.storage.sync.remove(keys, function() {});
 }

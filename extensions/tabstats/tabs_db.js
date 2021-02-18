@@ -1,7 +1,7 @@
 /***
- * 
+ *
  * Utility to read and write to a persistent DB.
- * 
+ *
  */
 
 TABS_TABLE = "tabs_history";
@@ -46,7 +46,7 @@ dynamo_db = {
         } else {
             console.log("DB not yet initialised!");
             cb("DB not yet initialised!");
-        }     
+        }
     },
 
     scan: function(tbl, cond=null, cb) {

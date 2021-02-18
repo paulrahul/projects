@@ -6,7 +6,6 @@
     "scripts": [
       "background.js",
       "tabs.js",
-      "tabs_cache.js",
       "tabs_db.js",
       "tabs_store.js"
     ],
