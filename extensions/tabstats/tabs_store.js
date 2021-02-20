@@ -75,6 +75,12 @@ function clearStore(cb, clear_store=true) {
     });
 }*/
 
+function sendToDB(rows) {
+    rows = JSON.stringify(rows);
+    console.log("Writing to local storage: " + rows);
+    postWebRequest("http://localhost:8080/dump", rows);
+}
+
 function gcStore(db=null) {
     getAllStoreTabs(function(items) {
         rows = [];
@@ -94,9 +100,7 @@ function gcStore(db=null) {
         }
 
         console.log("Rows = " + JSON.stringify(rows));
-        if (db) {
-          // Send to DB here
-        }
+        sendToDB(rows);
 
         // Delete the keys from the store.
         removeStoreTabs(del_keys);

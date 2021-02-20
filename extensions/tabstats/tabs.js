@@ -28,8 +28,9 @@ function postWebRequest(url, payload) {
     xhr.open("POST", url);
 
     xhr.onreadystatechange = function() {
-        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-            console.log("Received dump call response: " + xhr.status);
+        if (this.readyState === XMLHttpRequest.DONE) {
+            console.log("Received dump call response: " + xhr.status +
+                        "; " + xhr.responseText);
         }
     }
     xhr.send(payload);
