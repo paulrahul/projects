@@ -52,12 +52,12 @@ function getDates(src_ts) {
 
     yyyy = dt.getFullYear();
     mm = dt.getMonth() + 1 < 10 ? "0" + (dt.getMonth() + 1) : (dt.getMonth() + 1);
-    dd = dt.getDate() + 1 < 10 ? "0" + (dt.getDate() + 1) : (dt.getDate() + 1);
+    dd = dt.getDate() < 10 ? "0" + dt.getDate() : dt.getDate();
 
     return ["" + yyyy + mm + dd]
 }
 
-function dumpToRedis(items) {
+function dumpToRedis(items, cb) {
     const redis = require("redis");
     const client = redis.createClient();
 
@@ -67,6 +67,9 @@ function dumpToRedis(items) {
 
     console.log("Adding new items...");
 
+    set_arr = [];
+    zadd_arr = [];
+    key = "";
     for (item of items) {
         domains = getDomains(item["url"]);
 
@@ -82,8 +85,10 @@ function dumpToRedis(items) {
             ts: item["ts"],
             platform: item["platform"]
         }
-        console.log(key + ": " + JSON.stringify(value))
-        // client.set(key, value, redis.print);
+        // console.log(key + ": " + JSON.stringify(value))
+        set_arr.push(key);
+        set_arr.push(JSON.stringify(value));
+
 
         // Second, an entry into the secondaty table with the following schema:
         //
@@ -92,9 +97,29 @@ function dumpToRedis(items) {
         // Value - domain
         key = "test_" + getDates(item["ts"])[0];
         score = item["ts"];
-        // client.zadd(key, score, domains[0], redis.print);
-        console.log(key + ": " + score + ", " + domains[0]);
+        zadd_arr.push(score);
+        zadd_arr.push(domains[0]);
+        // console.log(key + ": " + score + ", " + domains[0]);
     }
+
+    let err_text = "";
+    client.mset(set_arr, function(err, reply) {
+        if (err) {
+            err_text += err + ": " + reply;
+            cb(false, err_text);
+        } else {
+            client.zadd(key, zadd_arr, function(err, reply) {
+                if (err) {
+                    err_text += err + ": " + reply;
+                    cb(false, err_text);
+                } else {
+                    cb(true, "");
+                }
+            });
+        }
+        // console.log(reply);
+    });
+
 }
 
 http.createServer(function (req, res) {
@@ -113,7 +138,15 @@ http.createServer(function (req, res) {
 
             req.on('end', function() {
                 console.log('Body: ' + body);
-                dumpToRedis(JSON.parse(body));
+                dumpToRedis(JSON.parse(body), function(status, txt) {
+                    if (status) {
+                        res.writeHead(200, {'Content-Type': 'text/plain'});
+                    } else {
+                        res.writeHead(500, {'Content-Type': 'text/plain'});
+                        res.write(txt);
+                    }
+                    res.end();
+                });
             });
         }
     } else if (req.url == "/") {

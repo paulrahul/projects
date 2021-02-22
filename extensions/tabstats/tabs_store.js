@@ -17,7 +17,7 @@ TAGS = {
     "communication": ["mail"]
 };
 
-DISALLOWED_TABS = ["chrome://newtab/"];
+DISALLOWED_TABS = ["chrome://newtab/", "chrome://extensions"];
 
 // Debugging methods.
 function dumpStore(query) {
@@ -75,10 +75,10 @@ function clearStore(cb, clear_store=true) {
     });
 }*/
 
-function sendToDB(rows) {
+function sendToDB(rows, cb) {
     rows = JSON.stringify(rows);
     console.log("Writing to local storage: " + rows);
-    postWebRequest("http://localhost:8080/dump", rows);
+    postWebRequest("http://localhost:8080/dump", rows, cb);
 }
 
 function gcStore(db=null) {
@@ -99,11 +99,18 @@ function gcStore(db=null) {
             del_keys.push(key);
         }
 
-        console.log("Rows = " + JSON.stringify(rows));
-        sendToDB(rows);
-
-        // Delete the keys from the store.
-        removeStoreTabs(del_keys);
+        if (rows.length > 0) {
+            console.log("Rows = " + JSON.stringify(rows));
+            sendToDB(rows, function(status, res) {
+                if (status == 200) {
+                    // Delete the keys from the store.
+                    removeStoreTabs(del_keys);
+                } else {
+                    console.log("Dumping of " + rows + " failed with: " +
+                                status + "; " + res);
+                }
+            });
+        }
     });
 }
 
@@ -127,6 +134,18 @@ function writeTab(ts, url, event_type, platform, dump=false) {
     });
 }
 
+function tabAllowed(tab_url) {
+    if (DISALLOWED_TABS.includes(tab_url)) {
+        return false;
+    }
+
+    if (tab_url.includes("onetab")) {
+      return false;
+    }
+
+    return true;
+}
+
 function updateTab(tab_id, event_type, dump=false, url=null) {
     let tab_url = url;
     if (!tab_url) {
@@ -139,7 +158,7 @@ function updateTab(tab_id, event_type, dump=false, url=null) {
         return false;
     }
 
-    if (DISALLOWED_TABS.includes(tab_url)) {
+    if (!tabAllowed(tab_url)) {
         console.log("Not writing " + tab_url);
         return false;
     }

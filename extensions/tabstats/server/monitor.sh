@@ -1,4 +1,4 @@
-ps aux | grep file_server | grep -v grep
+ps aux | grep db_server | grep -v grep
 if [ $? == 0 ]; then
   echo "Found"
 else

@@ -23,14 +23,15 @@ function bootStrap() {
     runGC();
 }
 
-function postWebRequest(url, payload) {
+function postWebRequest(url, payload, cb) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url);
 
     xhr.onreadystatechange = function() {
         if (this.readyState === XMLHttpRequest.DONE) {
-            console.log("Received dump call response: " + xhr.status +
-                        "; " + xhr.responseText);
+            console.log("Received dump call response: " + this.status +
+                        "; " + this.responseText);
+            cb(this.status, this.responseText);
         }
     }
     xhr.send(payload);
@@ -60,7 +61,7 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 
 // Periodic jobs.
 
-async function runPeriodicJob(job, interval_mins, num_runs=5) {
+async function runPeriodicJob(job, interval_mins, num_runs=-1) {
     i = 0;
     while (true) {
         await new Promise(
