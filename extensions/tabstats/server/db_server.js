@@ -1,6 +1,8 @@
 var http = require('http');
 var redisdb = require('./redis_provider');
+var query_processor = require('./query_processor');
 const utils = require("./utils");
+var fs = require('fs');
 
 http.createServer(function (req, res) {
     if (req.url == "/dump") {
@@ -31,7 +33,7 @@ http.createServer(function (req, res) {
         }
     } else if (req.url == "/q") {
         res.writeHead(200, {'Content-Type': 'text/plain'});
-        redisdb.queryDayStats(null, function(err, items) {
+        query_processor.fetchDayStats(null, function(err, items) {
             res.write(JSON.stringify(items));
             res.end();
         });
@@ -41,11 +43,21 @@ http.createServer(function (req, res) {
 
         res.writeHead(200, {'Content-Type': 'text/plain'});
         if (mode == "d") {
-            redisdb.queryDayStats(query[1], function(err, items) {
+            query_processor.fetchDayStats(query[1], function(err, items) {
                 res.write(JSON.stringify(items));
                 res.end();
             });
         }
+    } else if (req.url == "/r") {
+        fs.readFile('server/daystats.html', 'utf8', function(err, data) {
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            if (err) {
+                res.write(err);
+            } else {
+                res.write(data);
+            }
+            res.end();
+        });
     } else if (req.url == "/") {
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.write('Server Status: OK');
