@@ -17,6 +17,10 @@ function getYYYYMMDD(src_ts) {
     return "" + yyyy + mm + dd
 }
 
+function getCurrentYYYYMMDD() {
+    return getYYYYMMDD("" + (new Date()).getTime())
+}
+
 function parseQueryReq(query_url) {
     query = query_url.substring("/q?".length);
     idx = query.indexOf("=");
@@ -25,4 +29,5 @@ function parseQueryReq(query_url) {
 
 exports.getDomains = getDomains;
 exports.getYYYYMMDD = getYYYYMMDD;
+exports.getCurrentYYYYMMDD = getCurrentYYYYMMDD;
 exports.parseQueryReq = parseQueryReq;

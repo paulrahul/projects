@@ -74,7 +74,7 @@ function queryDayStats(day, cb) {
 
     if (!day) {
         dt = new Date();
-        day = utils.getYYYYMMDD("" + dt.getTime());
+        day = utils.getCurrentYYYYMMDD();
     }
 
     client.zrevrange("test_" + day, 0, -1, 'withscores', function(err, items) {

@@ -3,6 +3,23 @@ var redisdb = require('./redis_provider');
 var query_processor = require('./query_processor');
 const utils = require("./utils");
 var fs = require('fs');
+var ejs = require('ejs');
+
+function renderDailyStatsPage(day, res) {
+    if (!day) {
+        day = utils.getCurrentYYYYMMDD();
+    }
+    var data = {query_date: day};
+    ejs.renderFile(
+        'server/view/daystats.html', data, {}, function(err, data) {
+        if (err) {
+            res.write(err);
+        } else {
+            res.write(data);
+        }
+        res.end();
+    });
+}
 
 http.createServer(function (req, res) {
     if (req.url == "/dump") {
@@ -49,15 +66,10 @@ http.createServer(function (req, res) {
             });
         }
     } else if (req.url == "/r") {
-        fs.readFile('server/daystats.html', 'utf8', function(err, data) {
-            res.writeHead(200, {'Content-Type': 'text/html'});
-            if (err) {
-                res.write(err);
-            } else {
-                res.write(data);
-            }
-            res.end();
-        });
+        renderDailyStatsPage(null, res);
+    } else if (req.url.startsWith("/r?")) {
+        query = utils.parseQueryReq(req.url);
+        renderDailyStatsPage(query[1], res);
     } else if (req.url == "/") {
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.write('Server Status: OK');
