@@ -6,7 +6,7 @@ window.onload = function() {
 	var dataPoints = [];
 	var chart;
   // var qry = window.location.search;
-	$.getJSON("http://localhost:8080/q?d=20210222", function(data) {
+	$.getJSON("http://localhost:8080/q?d=20210227", function(data) {
 		$.each(data, function(key, value){
 			dataPoints.push({y: parseInt(value), indexLabel: key});
 		});

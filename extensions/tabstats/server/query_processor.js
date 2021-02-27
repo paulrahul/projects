@@ -7,12 +7,7 @@ function getDayHistogram(items) {
     n = items.length;
     for (i = 0; i < n; i += 2) {
         key = items[i];
-
-        if (!(key in histogram)) {
-            histogram[key] = 0;
-        }
-
-        histogram[key]++;
+        histogram[key] = parseInt(items[i + 1]);
     }
 
     return histogram;

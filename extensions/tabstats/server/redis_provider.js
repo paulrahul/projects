@@ -14,7 +14,6 @@ function dump(items, cb) {
     console.log("Adding new items...");
 
     set_arr = [];
-    zadd_arr = [];
     key = "";
     for (item of items) {
         domains = utils.getDomains(item["url"]);
@@ -34,18 +33,6 @@ function dump(items, cb) {
         // console.log(key + ": " + JSON.stringify(value))
         set_arr.push(key);
         set_arr.push(JSON.stringify(value));
-
-
-        // Second, an entry into the secondaty table with the following schema:
-        //
-        // Key - yyyymmdd
-        // Score - ts (reverse chronological)
-        // Value - domain
-        key = "test_" + utils.getYYYYMMDD(item["ts"]);
-        score = item["ts"];
-        zadd_arr.push(score);
-        zadd_arr.push(domains[0]);
-        // console.log(key + ": " + score + ", " + domains[0]);
     }
 
     let err_text = "";
@@ -54,14 +41,25 @@ function dump(items, cb) {
             err_text += err + ": " + reply;
             cb(false, err_text);
         } else {
-            client.zadd(key, zadd_arr, function(err, reply) {
-                if (err) {
-                    err_text += err + ": " + reply;
-                    cb(false, err_text);
-                } else {
-                    cb(true, "");
-                }
-            });
+            // Second, an entry into the secondaty table with the following schema:
+            //
+            // Key - yyyymmdd
+            // Score - +1
+            // Value - domain
+
+            for (item of items) {
+                key = "test_" + utils.getYYYYMMDD(item["ts"]);
+                client.zincrby(key, 1, domains[0], function(err, reply) {
+                    if (err) {
+                        err_text += err + ": " + reply;
+                        cb(false, err_text);
+                    } else {
+                        cb(true, "");
+                    }
+                });
+
+                // console.log(key + ": " + score + ", " + domains[0]);
+            }
         }
         // console.log(reply);
     });
