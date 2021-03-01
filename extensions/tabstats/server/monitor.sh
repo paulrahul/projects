@@ -3,5 +3,5 @@ if [ $? == 0 ]; then
   echo "Found"
 else
   echo "Not found"
-  node ./db_server.js &
+  /usr/local/bin/node ~/Codez/projects/extensions/tabstats/server/db_server.js &
 fi

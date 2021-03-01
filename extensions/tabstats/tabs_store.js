@@ -19,6 +19,8 @@ TAGS = {
 
 DISALLOWED_TABS = ["chrome://newtab/", "chrome://extensions"];
 
+LAST_TAB_URL = null;
+
 // Debugging methods.
 function dumpStore(query) {
     chrome.storage.sync.get(query, function(items) {
@@ -146,7 +148,7 @@ function tabAllowed(tab_url) {
     return true;
 }
 
-function updateTab(tab_id, event_type, dump=false, url=null) {
+function recordTabEvent(tab_id, event_type, dump=false, url=null) {
     let tab_url = url;
     if (!tab_url) {
         tab_url = getTabURL(tab_id);
@@ -165,20 +167,29 @@ function updateTab(tab_id, event_type, dump=false, url=null) {
 
 
     writeTab(Date.now(), tab_url, event_type, "Chrome", dump);
+    LAST_TAB_URL = tab_url;
     return true;
 }
 
 function createTab(tab) {
     all_tabs[tab.id] = tab;
-    success = updateTab(tab_id=null, "created", dump=false, url=tab.url);
+    return recordTabEvent(tab_id=null, "created", dump=false, url=tab.url);
+}
+
+function updateTab(tab) {
+    if (recordTabEvent(tab_id=null, "exited", dump=false, url=getLastTabURL())) {
+        success = createTab(tab);
+    }
 }
 
 function visitTab(tab_id) {
-    success = updateTab(tab_id, "entered", dump=false);
+    if (recordTabEvent(tab_id=null, "exited", dump=false, url=getLastTabURL())) {
+        success = recordTabEvent(tab_id, "entered", dump=false);
+    }
 }
 
 function closeTab(tab_id) {
-    success = updateTab(tab_id, "closed", dump=false);
+    success = recordTabEvent(tab_id, "closed", dump=false);
     delete all_tabs[tab_id];
 }
 
@@ -188,6 +199,15 @@ function getTabURL(tab_id) {
     }
 
     return null;
+}
+
+function getLastTabURL() {
+    if (LAST_TAB_URL) {
+        return LAST_TAB_URL;
+    }
+
+    // TODO: Fetch last tab url from DB
+    return LAST_TAB_URL;
 }
 
 function getTab(tab_id, cb) {

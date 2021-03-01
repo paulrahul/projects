@@ -65,6 +65,28 @@ function dump(items, cb) {
     });
 }
 
+function fetchDomainData(domains, cb) {
+    if (!domains) {
+        cb(false, null);
+    }
+
+    key_arr = [];
+
+    for (domain of domains) {
+        key_arr.push("test_" + domain);
+    }
+
+    const client = redis.createClient();
+
+    client.on("error", function(error) {
+      console.error(error);
+    });
+
+    client.mget(key_arr, function(err, items) {
+        cb(err, items);
+    });
+}
+
 function queryDayStats(day, cb) {
     const client = redis.createClient();
 
@@ -84,3 +106,4 @@ function queryDayStats(day, cb) {
 
 exports.dump = dump;
 exports.queryDayStats = queryDayStats;
+exports.fetchDomainData = fetchDomainData;

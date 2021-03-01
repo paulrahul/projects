@@ -7,7 +7,8 @@ window.onload = function() {
 	var chart;
   var url = "http://localhost:8080/q?d=" + <%= query_date %>;
 	$.getJSON(url, function(data) {
-		$.each(data, function(key, value){
+		var histogram = data["histogram"];
+		$.each(histogram, function(key, value){
 			dataPoints.push({y: parseInt(value), indexLabel: key});
 		});
 		chart = new CanvasJS.Chart("chartContainer",{

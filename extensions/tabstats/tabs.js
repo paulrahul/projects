@@ -44,7 +44,7 @@ chrome.tabs.onCreated.addListener(function(tab) {
 
 chrome.tabs.onUpdated.addListener(function(tab_id, change_info, tab) {
     if ("url" in change_info) {
-        createTab(tab);
+        updateTab(tab);
     }
 })
 

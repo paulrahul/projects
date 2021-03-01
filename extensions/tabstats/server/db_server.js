@@ -4,6 +4,7 @@ var query_processor = require('./query_processor');
 const utils = require("./utils");
 var fs = require('fs');
 var ejs = require('ejs');
+const path = require('path');
 
 function renderDailyStatsPage(day, res) {
     if (!day) {
@@ -11,9 +12,10 @@ function renderDailyStatsPage(day, res) {
     }
     var data = {query_date: day};
     ejs.renderFile(
-        'server/view/daystats.html', data, {}, function(err, data) {
+        path.join(__dirname, 'view/daystats.html'), data, {},
+        function(err, data) {
         if (err) {
-            res.write(err);
+            res.write("" + err);
         } else {
             res.write(data);
         }
@@ -50,7 +52,8 @@ http.createServer(function (req, res) {
         }
     } else if (req.url == "/q") {
         res.writeHead(200, {'Content-Type': 'text/plain'});
-        query_processor.fetchDayStats(null, function(err, items) {
+        query_processor.fetchDaySummaryData(null, function(err, items) {
+            console.log("Fetched items: " + items);
             res.write(JSON.stringify(items));
             res.end();
         });
@@ -60,7 +63,7 @@ http.createServer(function (req, res) {
 
         res.writeHead(200, {'Content-Type': 'text/plain'});
         if (mode == "d") {
-            query_processor.fetchDayStats(query[1], function(err, items) {
+            query_processor.fetchDaySummaryData(query[1], function(err, items) {
                 res.write(JSON.stringify(items));
                 res.end();
             });

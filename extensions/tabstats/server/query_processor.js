@@ -13,11 +13,35 @@ function getDayHistogram(items) {
     return histogram;
 }
 
-function fetchDayStats(day, cb) {
+function fetchDayUsageStats(day, cb) {
     redisdb.queryDayStats(day, function(err, items) {
-        histogram = getDayHistogram(items);
-        cb(err, histogram);
+        if (!err) {
+            items = getDayHistogram(items);
+        }
+        cb(err, items);
     });
 }
 
-exports.fetchDayStats = fetchDayStats;
+function fetchDaySummaryData(day, cb) {
+    // First get the domains of that day.
+    fetchDayUsageStats(day, function(err, items) {
+        if (err) {
+            cb(err, items);
+        } else {
+            res = {};
+            res["histogram"] = items;
+
+            // Then fetch the domains data.
+            domains = Object.keys(items);
+            redisdb.fetchDomainData(domains, function(err, items) {
+                if (!err) {
+                    res["domains"] = items;
+                }
+                cb(err, res);
+            });
+        }
+    });
+}
+
+exports.fetchDayUsageStats = fetchDayUsageStats;
+exports.fetchDaySummaryData = fetchDaySummaryData;
