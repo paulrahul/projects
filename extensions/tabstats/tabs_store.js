@@ -35,11 +35,13 @@ all_tabs = {}
 
 // Tab API methods.
 // Get all existing tabs
-chrome.tabs.query({}, function(results) {
-    results.forEach(function(tab) {
-        all_tabs[tab.id] = tab;
+function loadAllTabs(){
+    chrome.tabs.query({}, function(results) {
+        results.forEach(function(tab) {
+            all_tabs[tab.id] = tab;
+        });
     });
-});
+}
 
 /*
 function clearStore(cb, clear_store=true) {
@@ -182,9 +184,10 @@ function updateTab(tab) {
     }
 }
 
-function visitTab(tab_id) {
-    if (recordTabEvent(tab_id=null, "exited", dump=false, url=getLastTabURL())) {
-        success = recordTabEvent(tab_id, "entered", dump=false);
+function visitTab(visited_tab_id) {
+    if (recordTabEvent(
+        tab_id=null, "exited", dump=false, url=getLastTabURL(visited_tab_id))) {
+        success = recordTabEvent(visited_tab_id, "entered", dump=false);
     }
 }
 
@@ -194,6 +197,12 @@ function closeTab(tab_id) {
 }
 
 function getTabURL(tab_id) {
+    if (Object.keys(all_tabs).length == 0) {
+      loadAllTabs()
+    }
+
+    // console.log(tab_id + ", " + Object.keys(all_tabs));
+
     if (tab_id in all_tabs) {
         return all_tabs[tab_id].url;
     }
@@ -201,9 +210,11 @@ function getTabURL(tab_id) {
     return null;
 }
 
-function getLastTabURL() {
+function getLastTabURL(tab_id=null) {
     if (LAST_TAB_URL) {
         return LAST_TAB_URL;
+    } else if (tab_id) {
+        LAST_TAB_URL = getTabURL(tab_id);
     }
 
     // TODO: Fetch last tab url from DB

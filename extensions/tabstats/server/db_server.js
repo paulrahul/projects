@@ -6,6 +6,8 @@ var fs = require('fs');
 var ejs = require('ejs');
 const path = require('path');
 
+LIMIT = null;
+
 function renderDailyStatsPage(day, res) {
     if (!day) {
         day = utils.getCurrentYYYYMMDD();
@@ -52,8 +54,8 @@ http.createServer(function (req, res) {
         }
     } else if (req.url == "/q") {
         res.writeHead(200, {'Content-Type': 'text/plain'});
-        query_processor.fetchDaySummaryData(null, function(err, items) {
-            console.log("Fetched items: " + items);
+        query_processor.fetchDaySummaryData(null, LIMIT, function(err, items) {
+            // console.log("Fetched items: " + items);
             res.write(JSON.stringify(items));
             res.end();
         });
@@ -63,7 +65,8 @@ http.createServer(function (req, res) {
 
         res.writeHead(200, {'Content-Type': 'text/plain'});
         if (mode == "d") {
-            query_processor.fetchDaySummaryData(query[1], function(err, items) {
+            query_processor.fetchDaySummaryData(
+                query[1], LIMIT, function(err, items) {
                 res.write(JSON.stringify(items));
                 res.end();
             });

@@ -20,6 +20,7 @@ PUSHUPS_INTERVAL_MINS = 240;
 // Functions
 
 function bootStrap() {
+    loadAllTabs();
     runGC();
 }
 
