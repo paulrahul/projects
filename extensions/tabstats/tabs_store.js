@@ -17,7 +17,7 @@ TAGS = {
     "communication": ["mail"]
 };
 
-DISALLOWED_TABS = ["chrome://newtab/", "chrome://extensions"];
+DISALLOWED_TABS = ["chrome://newtab/", "chrome://extensions/"];
 
 LAST_TAB_URL = null;
 

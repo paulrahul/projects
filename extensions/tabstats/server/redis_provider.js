@@ -67,6 +67,7 @@ function dump(items, cb) {
     // Score - +1
     // Value - domain
     for (item of items) {
+        domains = utils.getDomains(item["url"]);
         key = "test_" + utils.getYYYYMMDD(item["ts"]);
         client.zincrby(key, 1, domains[0], function(err, reply) {
             if (err) {
