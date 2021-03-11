@@ -1,6 +1,7 @@
 // Query Processing functions.
 
 var redisdb = require('./redis_provider');
+const utils = require("./utils");
 
 function getDayHistogram(items) {
     histogram = {};
@@ -13,18 +14,27 @@ function getDayHistogram(items) {
     return histogram;
 }
 
-function processDayStats(items, domains) {
+function processDayStats(day, items, domains) {
     n = items.length;
     if (n == 0) {
         return [];
     }
+
+    beginning = Date.parse(utils.getBeginningOfDay(day));
+    end = beginning + (24 * 60 * 60 * 1000);
 
     tmp_items = [];
     new_len = 0;
     for (i = 0; i < n; ++i) {
         m = items[i].length;
         for (j = 0; j < m; ++j) {
-            tmp_items.push(JSON.parse(items[i][j]));
+            tmp_item = JSON.parse(items[i][j]);
+            time = parseInt(tmp_item["ts"]);
+            if (time < beginning || time > end) {
+              continue;
+            }
+
+            tmp_items.push(tmp_item);
             tmp_items[new_len++]["domain"] = domains[i];
         }
     }
@@ -40,13 +50,14 @@ function processDayStats(items, domains) {
             domain: tmp_items[i - 1].domain
         });
     }
-
-    new_items.push({
-        start_ts: tmp_items[new_len - 1].ts,
-        end_ts: -1,
-        event_type: tmp_items[new_len - 1].event_type,
-        domain: tmp_items[new_len - 1].domain
-    });
+    if (new_len > 0) {
+      new_items.push({
+          start_ts: tmp_items[new_len - 1].ts,
+          end_ts: end - 1,
+          event_type: tmp_items[new_len - 1].event_type,
+          domain: tmp_items[new_len - 1].domain
+      });
+    }
 
     return new_items;
 }
@@ -83,6 +94,11 @@ function fetchDayUsageStats(day, limit=null, cb) {
 }
 
 function fetchDaySummaryData(day, limit=null, cb) {
+    if (!day) {
+        dt = new Date();
+        day = utils.getCurrentYYYYMMDD();
+    }
+
     // First get the domains of that day.
     fetchDayUsageStats(day, limit, function(err, items) {
         if (err) {
@@ -95,7 +111,7 @@ function fetchDaySummaryData(day, limit=null, cb) {
             domains = Object.keys(items);
             redisdb.fetchDomainData(domains, function(err, items) {
                 if (!err) {
-                    res["day"] = processDayStats(items, domains);
+                    res["day"] = processDayStats(day, items, domains);
                 }
                 cb(err, res);
             });

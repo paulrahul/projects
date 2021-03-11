@@ -21,6 +21,14 @@ function getCurrentYYYYMMDD() {
     return getYYYYMMDD("" + (new Date()).getTime())
 }
 
+function getBeginningOfDay(yyyymmdd) {
+  yyyy = yyyymmdd.substring(0, 4);
+  mm = yyyymmdd.substring(4, 6);
+  dd = yyyymmdd.substring(6);
+
+  return yyyy + "-" + mm + "-" + dd + "T00:00:00";
+}
+
 function parseQueryReq(query_url) {
     query = query_url.substring("/q?".length);
     idx = query.indexOf("=");
@@ -31,3 +39,4 @@ exports.getDomains = getDomains;
 exports.getYYYYMMDD = getYYYYMMDD;
 exports.getCurrentYYYYMMDD = getCurrentYYYYMMDD;
 exports.parseQueryReq = parseQueryReq;
+exports.getBeginningOfDay = getBeginningOfDay;

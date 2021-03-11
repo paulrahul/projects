@@ -1,7 +1,6 @@
 // Functions to interact with the DB.
 
 const redis = require("redis");
-
 const utils = require("./utils");
 
 async function doLPush(client, key, value) {

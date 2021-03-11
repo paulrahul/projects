@@ -3,15 +3,15 @@
 <head>
 <script type="text/javascript">
 window.onload = function() {
-	var dataPoints = [];
-	var chart;
+	var dataPoints1 = [];
+	var chart1;
   var url = "http://localhost:8080/q?d=" + <%= query_date %>;
 	$.getJSON(url, function(data) {
 		var histogram = data["histogram"];
 		$.each(histogram, function(key, value){
-			dataPoints.push({y: parseInt(value), indexLabel: key});
+			dataPoints1.push({y: parseInt(value), indexLabel: key});
 		});
-		chart = new CanvasJS.Chart("chartContainer",{
+		chart1 = new CanvasJS.Chart("chartContainer1",{
 			title:{
 				text:"Daily Chart"
 			},
@@ -23,10 +23,66 @@ window.onload = function() {
 				type: "pie",
         showInLegend: true,
 			  legendText: "{indexLabel}",
-				dataPoints : dataPoints,
+				dataPoints : dataPoints1,
 			}]
 		});
-		chart.render();
+
+		var data2 = [];
+		var dataPoints2 = [];
+		var chart2;
+		var day = data["day"];
+		var domain_data = {};
+
+		for (item of day) {
+			domain = item["domain"];
+			if (!(domain in domain_data)) {
+				domain_data[domain] = [];
+			}
+			domain_data[domain].push({start: item["start_ts"], end: item["end_ts"]});
+		}
+
+		x_idx = 1;
+		for (key of Object.keys(domain_data)) {
+			dataPoints2 = [];
+			for (value of domain_data[key]) {
+				s_dt = new Date(parseInt(value["start"]));
+				start = s_dt.getHours() + (s_dt.getMinutes() / 100);
+
+				if (value["end"] == "-1") {
+					e_dt = new Date(parseInt(value["start"]));
+				} else {
+					e_dt = new Date(parseInt(value["end"]));
+				}
+				end = e_dt.getHours() + (e_dt.getMinutes() / 100);
+
+				dataPoints2.push({x: x_idx, y: [start, end]});
+			}
+			data2.push({
+				type: "rangeBar",
+				name: key,
+				yValueFormatString: "0#:#0",
+				showInLegend: true,
+				dataPoints : dataPoints2,
+			});
+			++x_idx;
+		}
+
+		chart2 = new CanvasJS.Chart("chartContainer2",{
+			title:{
+				text:"Timeline Chart"
+			},
+			axisY: {
+				interval: 1,
+				valueFormatString: "0#:#0"
+			},
+			axisX: {
+				interval: 1,
+			},
+      data: data2
+		});
+
+		chart1.render();
+		chart2.render();
 	});
 }
 </script>
@@ -34,6 +90,7 @@ window.onload = function() {
 <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 </head>
 <body>
-<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+<div id="chartContainer1" style="height: 300px; width: 100%;"></div>
+<div id="chartContainer2" style="height: 300px; width: 100%;"></div>
 </body>
 </html>
