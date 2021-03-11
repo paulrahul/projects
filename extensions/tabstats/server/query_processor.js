@@ -19,28 +19,33 @@ function processDayStats(items, domains) {
         return [];
     }
 
+    tmp_items = [];
+    new_len = 0;
     for (i = 0; i < n; ++i) {
-        items[i] = items[i];
-        items[i]["domain"] = domains[i];
+        m = items[i].length;
+        for (j = 0; j < m; ++j) {
+            tmp_items.push(JSON.parse(items[i][j]));
+            tmp_items[new_len++]["domain"] = domains[i];
+        }
     }
 
-    items.sort((a, b) => (parseInt(a.ts) - parseInt(b.ts)));
+    tmp_items.sort((a, b) => (parseInt(a.ts) - parseInt(b.ts)));
 
     new_items = [];
-    for (i = 1; i < n; ++i) {
+    for (i = 1; i < new_len; ++i) {
         new_items.push({
-            start_ts: items[i - 1].ts,
-            end_ts: items[i].ts,
-            event_type: items[i - 1].event_type,
-            domain: items[i - 1].domain
+            start_ts: tmp_items[i - 1].ts,
+            end_ts: tmp_items[i].ts,
+            event_type: tmp_items[i - 1].event_type,
+            domain: tmp_items[i - 1].domain
         });
     }
 
     new_items.push({
-        start_ts: items[n - 1].ts,
+        start_ts: tmp_items[new_len - 1].ts,
         end_ts: -1,
-        event_type: items[n - 1].event_type,
-        domain: items[n - 1].domain
+        event_type: tmp_items[new_len - 1].event_type,
+        domain: tmp_items[new_len - 1].domain
     });
 
     return new_items;
