@@ -147,6 +147,10 @@ function tabAllowed(tab_url) {
       return false;
     }
 
+    if (tab_url.includes("localhost:8080")) {
+      return false;
+    }
+
     return true;
 }
 

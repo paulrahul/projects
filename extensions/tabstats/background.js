@@ -7,9 +7,9 @@ chrome.runtime.onStartup.addListener(function() {
 })
 
 chrome.runtime.onSuspend.addListener(function() {
-    // flushToStore();
+    gcStore();
 })
 
 chrome.windows.onRemoved.addListener(function(window_id) {
-    // clearStore(function() {});
+    // gcStore();
 })

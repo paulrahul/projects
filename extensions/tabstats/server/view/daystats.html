@@ -42,41 +42,58 @@ window.onload = function() {
 		}
 
 		x_idx = 1;
+		idx_domain_map = {};
 		for (key of Object.keys(domain_data)) {
 			dataPoints2 = [];
 			for (value of domain_data[key]) {
 				s_dt = new Date(parseInt(value["start"]));
-				start = s_dt.getHours() + (s_dt.getMinutes() / 100);
+				// start = s_dt.getHours() + (s_dt.getMinutes() / 100);
+				// start = CanvasJS.formatDate(s_dt, "HH:mm");
+				start = s_dt.getTime();
 
 				if (value["end"] == "-1") {
 					e_dt = new Date(parseInt(value["start"]));
 				} else {
 					e_dt = new Date(parseInt(value["end"]));
 				}
-				end = e_dt.getHours() + (e_dt.getMinutes() / 100);
+				// end = e_dt.getHours() + (e_dt.getMinutes() / 100);
+				// end = CanvasJS.formatDate(e_dt, "HH:mm");
+				end = e_dt.getTime();
 
 				dataPoints2.push({x: x_idx, y: [start, end]});
 			}
 			data2.push({
 				type: "rangeBar",
 				name: key,
-				yValueFormatString: "0#:#0",
+				yValueFormatString: "HH:mm",
 				showInLegend: true,
 				dataPoints : dataPoints2,
 			});
-			++x_idx;
+			idx_domain_map[x_idx++] = key;
 		}
+		console.log(data2);
 
 		chart2 = new CanvasJS.Chart("chartContainer2",{
 			title:{
 				text:"Timeline Chart"
 			},
+			toolTip: {
+				contentFormatter: function ( e ) {
+		      return idx_domain_map[e.entries[0].dataPoint.x] + ": " +
+					  		 CanvasJS.formatDate(e.entries[0].dataPoint.y[0], "HH:mm") + ", " +
+								 CanvasJS.formatDate(e.entries[0].dataPoint.y[1], "HH:mm");
+		    }
+			},
 			axisY: {
-				interval: 1,
-				valueFormatString: "0#:#0"
+				// interval: 30,
+				interval: (30 * 60 * 1000),
+				// valueFormatString: "HH:mm"
+				labelFormatter: function(e){
+					return CanvasJS.formatDate(e.value, "HH:mm");
+				}
 			},
 			axisX: {
-				interval: 1,
+				interval: 5,
 			},
       data: data2
 		});
