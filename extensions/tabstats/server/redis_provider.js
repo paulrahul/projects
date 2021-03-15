@@ -27,6 +27,18 @@ async function doLRange(client, key) {
     });
 }
 
+async function doZincrby(client, key, domain) {
+  return new Promise(function(resolve, reject) {
+    client.zincrby(key, 1, domain, function(err, reply) {
+        if (err) {
+            reject("" + err);
+        } else {
+            resolve(reply);
+        }
+    });
+  });
+}
+
 function dump(items, cb) {
     const client = redis.createClient();
 
@@ -34,7 +46,7 @@ function dump(items, cb) {
       console.error(error);
     });
 
-    console.log("Adding new items...");
+    // console.log("Adding new items...");
 
     promises = [];
     for (item of items) {
@@ -52,7 +64,7 @@ function dump(items, cb) {
             ts: item["ts"],
             platform: item["platform"]
         }
-        console.log(key + ": " + JSON.stringify(value))
+        // console.log(key + ": " + JSON.stringify(value))
         promises.push(doLPush(client, key, JSON.stringify(value)));
     }
 
@@ -66,19 +78,19 @@ function dump(items, cb) {
     // Key - yyyymmdd
     // Score - +1
     // Value - domain
+    promises = []
     for (item of items) {
         domains = utils.getDomains(item["url"]);
         key = "test_" + utils.getYYYYMMDD(item["ts"]);
-        client.zincrby(key, 1, domains[0], function(err, reply) {
-            if (err) {
-                err_text += err + ": " + reply;
-                cb(false, err_text);
-            } else {
-                cb(true, "");
-            }
-        });
+        promises.push(doZincrby(client, key, domains[0]))
         // console.log(key + ": " + score + ", " + domains[0]);
     }
+    Promise.all(promises).then(function(reply) {
+        cb(true, "");
+    }, function(err) {
+        console.log("incr failed: " + err);
+        cb(false, err);
+    });
 }
 
 function fetchDomainData(domains, cb) {

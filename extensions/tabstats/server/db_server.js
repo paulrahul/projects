@@ -40,7 +40,7 @@ http.createServer(function (req, res) {
             });
 
             req.on('end', function() {
-                console.log('Body: ' + body);
+                // console.log('Body: ' + body);
                 redisdb.dump(JSON.parse(body), function(status, txt) {
                     if (status) {
                         res.writeHead(200, {'Content-Type': 'text/plain'});

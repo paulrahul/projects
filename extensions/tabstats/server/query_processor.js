@@ -22,6 +22,7 @@ function processDayStats(day, items, domains) {
 
     beginning = Date.parse(utils.getBeginningOfDay(day));
     end = beginning + (24 * 60 * 60 * 1000);
+    current = (new Date()).getTime();
 
     tmp_items = [];
     new_len = 0;
@@ -53,7 +54,7 @@ function processDayStats(day, items, domains) {
     if (new_len > 0) {
       new_items.push({
           start_ts: tmp_items[new_len - 1].ts,
-          end_ts: end - 1,
+          end_ts: current,
           event_type: tmp_items[new_len - 1].event_type,
           domain: tmp_items[new_len - 1].domain
       });
