@@ -8,11 +8,11 @@ const path = require('path');
 
 LIMIT = null;
 
-function renderDailyStatsPage(day, res) {
+function renderDailyStatsPage(day, limit, res) {
     if (!day) {
         day = utils.getCurrentYYYYMMDD();
     }
-    var data = {query_date: day};
+    var data = {query_date: day, limit: limit};
     ejs.renderFile(
         path.join(__dirname, 'view/daystats.html'), data, {},
         function(err, data) {
@@ -61,12 +61,12 @@ http.createServer(function (req, res) {
         });
     } else if (req.url.startsWith("/q?")) {
         query = utils.parseQueryReq(req.url);
-        mode = query[0];
+        limit = ("l" in query) ? parseInt(query["l"]) : LIMIT;
 
         res.writeHead(200, {'Content-Type': 'text/plain'});
-        if (mode == "d") {
+        if ("d" in query) {
             query_processor.fetchDaySummaryData(
-                query[1], LIMIT, function(err, items) {
+                query["d"], limit, function(err, items) {
                 res.write(JSON.stringify(items));
                 res.end();
             });
@@ -75,7 +75,8 @@ http.createServer(function (req, res) {
         renderDailyStatsPage(null, res);
     } else if (req.url.startsWith("/r?")) {
         query = utils.parseQueryReq(req.url);
-        renderDailyStatsPage(query[1], res);
+        limit = ("l" in query) ? parseInt(query["l"]) : LIMIT;
+        renderDailyStatsPage(query["d"], limit, res);
     } else if (req.url == "/") {
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.write('Server Status: OK');

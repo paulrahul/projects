@@ -30,9 +30,15 @@ function getBeginningOfDay(yyyymmdd) {
 }
 
 function parseQueryReq(query_url) {
-    query = query_url.substring("/q?".length);
-    idx = query.indexOf("=");
-    return [query.substring(0, idx), query.substring(idx + 1)];
+    query_str = query_url.substring("/q?".length);
+    queries = query_str.split("&")
+
+    res = {};
+    for (query of queries) {
+        q = query.split("=");
+        res[q[0]] = q[1];
+    }
+    return res;
 }
 
 exports.getDomains = getDomains;
