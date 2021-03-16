@@ -66,7 +66,7 @@ function getDayTimeline(day, items, domains) {
 
         new_items.push({
             start_ts: tmp_items[new_len - 1].ts,
-            end_ts: current,
+            end_ts: "" + current,
             event_type: tmp_items[new_len - 1].event_type,
             domain: domain
         });

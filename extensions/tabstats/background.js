@@ -10,6 +10,10 @@ chrome.runtime.onSuspend.addListener(function() {
     gcStore();
 })
 
-chrome.windows.onRemoved.addListener(function(window_id) {
-    // gcStore();
+chrome.windows.onFocusChanged.addListener(function(window_id) {
+    if (window_id == chrome.windows.WINDOW_ID_NONE) {
+        // Chrome has lost focus; flush the pending events.
+        unFocusChrome();
+        gcStore();
+    }
 })

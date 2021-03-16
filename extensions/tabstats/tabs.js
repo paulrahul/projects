@@ -30,8 +30,8 @@ function postWebRequest(url, payload, cb) {
 
     xhr.onreadystatechange = function() {
         if (this.readyState === XMLHttpRequest.DONE) {
-            console.log("Received dump call response: " + this.status +
-                        "; " + this.responseText);
+            // console.log("Received dump call response: " + this.status +
+            //             "; " + this.responseText);
             cb(this.status, this.responseText);
         }
     }

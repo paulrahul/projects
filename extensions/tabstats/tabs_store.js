@@ -18,6 +18,7 @@ TAGS = {
 };
 
 DISALLOWED_TABS = ["chrome://newtab/", "chrome://extensions/"];
+SAME_DOMAIN_EXCEPTIONS = ["reddit.com"];
 
 LAST_TAB_URL = null;
 
@@ -43,45 +44,9 @@ function loadAllTabs(){
     });
 }
 
-/*
-function clearStore(cb, clear_store=true) {
-    // Fetch everything from sync.store and then flush to them to the DB, after
-    // which, clear the sync.store.
-    getAllStoreTabs(function(items) {
-        payload = "";
-        rows = [];
-        store_rows = {};
-        for (url in items) {
-            new_row = JSON.parse(items[url]);
-            new_row["url"] = url;
-            rows.push(new_row);
-
-            store_rows[url] = items[url];
-
-            payload += url + ":" + items[url] + "\n";
-        }
-
-        rows = JSON.stringify(rows);
-        // console.log("Writing to local storage: " + rows);
-
-        chrome.storage.local.set(store_rows, function() {
-            // console.log("Done writing locally");
-            postWebRequest("http://localhost:8080/dump", rows);
-            if (clear_store) {
-                chrome.storage.sync.clear(cb);
-            }
-        });
-
-        // db_interface.write(TABS_TABLE, rows, function(err) {
-        //     if (!err) chrome.storage.sync.clear(cb);
-        //     else cb();
-        // });
-    });
-}*/
-
 function sendToDB(rows, cb) {
     rows = JSON.stringify(rows);
-    console.log("Writing to local storage: " + rows);
+    // console.log("Writing to local storage: " + rows);
     postWebRequest("http://localhost:8080/dump", rows, cb);
 }
 
@@ -104,7 +69,7 @@ function gcStore(db=null) {
         }
 
         if (rows.length > 0) {
-            console.log("Rows = " + JSON.stringify(rows));
+            // console.log("Rows = " + JSON.stringify(rows));
             sendToDB(rows, function(status, res) {
                 if (status == 200) {
                     // Delete the keys from the store.
@@ -154,6 +119,34 @@ function tabAllowed(tab_url) {
     return true;
 }
 
+function getDomain(src_url) {
+    if (!src_url) {
+        return src_url;
+    }
+
+    const url = new URL(src_url);
+    return url.hostname;
+}
+
+function domainChangeAllowed(domain) {
+    for (domain_exc in SAME_DOMAIN_EXCEPTIONS) {
+        if (domain.includes(domain_exc)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function subRedditChanged(old_url, new_url) {
+    const regex = /.*reddit.com\/r\/(\w+)/;
+
+    old_sr = old_url.match(regex)[1];
+    new_sr = new_url.match(regex)[1];
+
+    return old_sr != new_sr;
+}
+
 function recordTabEvent(tab_id, event_type, dump=false, url=null) {
     let tab_url = url;
     if (!tab_url) {
@@ -161,13 +154,13 @@ function recordTabEvent(tab_id, event_type, dump=false, url=null) {
     }
 
     if (!tab_url) {
-        console.log("Null URL for tab_id: " + tab_id +
-                    ", event_type: " + event_type);
+        // console.log("Null URL for tab_id: " + tab_id +
+        //             ", event_type: " + event_type);
         return false;
     }
 
     if (!tabAllowed(tab_url)) {
-        console.log("Not writing " + tab_url);
+        // console.log("Not writing " + tab_url);
         return false;
     }
 
@@ -183,12 +176,32 @@ function createTab(tab) {
 }
 
 function updateTab(tab) {
-    if (recordTabEvent(tab_id=null, "exited", dump=false, url=getLastTabURL())) {
-        success = createTab(tab);
+    // If the website domain hasn't changed, then we won't log this event, for
+    // most cases. Exceptions - reddit, if the subreddit changes.
+
+    new_domain = getDomain(tab.url);
+    old_url = getLastTabURL();
+    old_domain = getDomain(old_url);
+    if (new_domain && old_domain && new_domain == old_domain) {
+        if (!domainChangeAllowed(new_domain)) {
+            return;
+        }
+    }
+
+    if (!old_domain || new_domain != old_domain) {
+        // New domain altogether; record a create event.
+        console.log("Calling exited in updateTab for: " + old_url);
+        if (recordTabEvent(tab_id=null, "exited", dump=false, url=old_url)) {
+            success = createTab(tab);
+        }
+    } else if (new_domain.includes("reddit.com") &&
+               subRedditChanged(old_url, tab.url)) {
+        visitTab(tab.id);
     }
 }
 
 function visitTab(visited_tab_id) {
+    console.log("Calling exited in visitTab for: " + getLastTabURL(visited_tab_id));
     if (recordTabEvent(
         tab_id=null, "exited", dump=false, url=getLastTabURL(visited_tab_id))) {
         success = recordTabEvent(visited_tab_id, "entered", dump=false);
@@ -198,6 +211,14 @@ function visitTab(visited_tab_id) {
 function closeTab(tab_id) {
     success = recordTabEvent(tab_id, "closed", dump=false);
     delete all_tabs[tab_id];
+}
+
+function unFocusChrome() {
+    // Record last tab as having been exited.
+    LAST_TAB_URL = null;
+    console.log("Calling exited in unFocusChrome for: " + getLastTabURL());
+    success = recordTabEvent(
+      tab_id=null, "exited", dump=false, url=getLastTabURL());
 }
 
 function getTabURL(tab_id) {
