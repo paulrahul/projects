@@ -19,7 +19,7 @@ function getDayHistogram(items) {
 function getDayTimeline(day, items, domains) {
     n = items.length;
     if (n == 0) {
-        return ({}, []);
+        return [{}, []];
     }
 
     beginning = Date.parse(utils.getBeginningOfDay(day));
@@ -139,7 +139,7 @@ function fetchDaySummaryData(day, limit=null, cb) {
 }
 
 function limitHistogramDomains(histogram, limit) {
-    if (!limit) {
+    if (!limit || limit < 0 || Object.keys(histogram).length == 0) {
         return histogram;
     }
 

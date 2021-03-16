@@ -6,7 +6,7 @@ var fs = require('fs');
 var ejs = require('ejs');
 const path = require('path');
 
-LIMIT = null;
+LIMIT = -1;
 
 function renderDailyStatsPage(day, limit, res) {
     if (!day) {
@@ -72,7 +72,7 @@ http.createServer(function (req, res) {
             });
         }
     } else if (req.url == "/r") {
-        renderDailyStatsPage(null, res);
+        renderDailyStatsPage(null, LIMIT, res);
     } else if (req.url.startsWith("/r?")) {
         query = utils.parseQueryReq(req.url);
         limit = ("l" in query) ? parseInt(query["l"]) : LIMIT;

@@ -5,7 +5,11 @@
 window.onload = function() {
 	var dataPoints1 = [];
 	var chart1;
-  var url = "http://localhost:8080/q?d=" + <%= query_date %> + "&l=" + <%= limit %>;
+  var url = "http://localhost:8080/q?d=" + <%= query_date %>;
+	var limit = <%= limit %>;
+	if (limit) {
+			url += "&l=" + limit;
+	}
 	$.getJSON(url, function(data) {
 		var histogram = data["histogram"];
 		$.each(histogram, function(key, value){
