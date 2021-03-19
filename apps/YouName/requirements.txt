@@ -25,7 +25,7 @@ soupsieve==2.1
 srsly==1.0.5
 thinc==7.4.5
 tqdm==4.55.0
-urllib3==1.26.2
+urllib3==1.26.3
 wasabi==0.8.0
 Werkzeug==1.0.1
 redis==3.5.3
