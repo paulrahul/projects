@@ -147,7 +147,7 @@ function subRedditChanged(old_url, new_url) {
     return old_sr != new_sr;
 }
 
-function recordTabEvent(tab_id, event_type, dump=false, url=null) {
+function recordTabEvent(tab_id, event_type, ts, dump=false, url=null) {
     let tab_url = url;
     if (!tab_url) {
         tab_url = getTabURL(tab_id);
@@ -165,14 +165,15 @@ function recordTabEvent(tab_id, event_type, dump=false, url=null) {
     }
 
 
-    writeTab(Date.now(), tab_url, event_type, "Chrome", dump);
+    writeTab(ts, tab_url, event_type, "Chrome", dump);
     LAST_TAB_URL = tab_url;
     return true;
 }
 
 function createTab(tab) {
     all_tabs[tab.id] = tab;
-    return recordTabEvent(tab_id=null, "created", dump=false, url=tab.url);
+    return recordTabEvent(
+      tab_id=null, "created", ts=Date.now(), dump=false, url=tab.url);
 }
 
 function updateTab(tab) {
@@ -190,8 +191,9 @@ function updateTab(tab) {
 
     if (!old_domain || new_domain != old_domain) {
         // New domain altogether; record a create event.
-        console.log("Calling exited in updateTab for: " + old_url);
-        if (recordTabEvent(tab_id=null, "exited", dump=false, url=old_url)) {
+        // console.log("Calling exited in updateTab for: " + old_url);
+        if (recordTabEvent(
+          tab_id=null, "closed", ts=Date.now(), dump=false, url=old_url)) {
             success = createTab(tab);
         }
     } else if (new_domain.includes("reddit.com") &&
@@ -201,24 +203,26 @@ function updateTab(tab) {
 }
 
 function visitTab(visited_tab_id) {
-    console.log("Calling exited in visitTab for: " + getLastTabURL(visited_tab_id));
+    // console.log("Calling exited in visitTab for: " + getLastTabURL(visited_tab_id));
     if (recordTabEvent(
-        tab_id=null, "exited", dump=false, url=getLastTabURL(visited_tab_id))) {
-        success = recordTabEvent(visited_tab_id, "entered", dump=false);
+        tab_id=null, "exited", ts=Date.now(), dump=false,
+        url=getLastTabURL(visited_tab_id))) {
+        success = recordTabEvent(
+          visited_tab_id, "entered", ts=Date.now(), dump=false);
     }
 }
 
 function closeTab(tab_id) {
-    success = recordTabEvent(tab_id, "closed", dump=false);
+    success = recordTabEvent(tab_id, "closed", ts=Date.now(), dump=false);
     delete all_tabs[tab_id];
 }
 
 function unFocusChrome() {
     // Record last tab as having been exited.
-    LAST_TAB_URL = null;
-    console.log("Calling exited in unFocusChrome for: " + getLastTabURL());
+    // console.log("Calling exited in unFocusChrome for: " + getLastTabURL());
     success = recordTabEvent(
-      tab_id=null, "exited", dump=false, url=getLastTabURL());
+      tab_id=null, "exited", ts=Date.now(), dump=false, url=getLastTabURL());
+    LAST_TAB_URL = null;
 }
 
 function getTabURL(tab_id) {

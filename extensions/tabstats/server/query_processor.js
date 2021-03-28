@@ -24,7 +24,7 @@ function getDayTimeline(day, items, domains) {
 
     beginning = Date.parse(utils.getBeginningOfDay(day));
     end = beginning + (24 * 60 * 60 * 1000);
-    current = (new Date()).getTime();
+    // current = (new Date()).getTime();
 
     tmp_items = [];
     new_len = 0;
@@ -46,28 +46,79 @@ function getDayTimeline(day, items, domains) {
 
     new_items = [];
     histogram = {};
-    for (i = 1; i < new_len; ++i) {
-        domain = tmp_items[i - 1].domain;
+    prev_idx = -1
+    start_ts = 0
+    end_ts = 0
+    event_type = ""
+
+    for (i = 0; i < new_len; ++i) {
+        event_type = tmp_items[i].event_type
+        if (event_type == "closed") {
+            // Can be for either of these two cases:
+            // 1. When the current tab is closed i.e. the one which was
+            // last created or entered. Check for prev_idx.
+            if (prev_idx >= 0  &&
+                tmp_items[prev_idx].domain == tmp_items[i].domain) {
+                start_ts = tmp_items[prev_idx].ts
+                end_ts = tmp_items[i].ts
+                event_type = tmp_items[prev_idx].event_type
+
+                prev_idx = -1
+            } else {
+                // Or 2. When some other tab is closed which is not in focus.
+                // For this, it's a point in time event with no bearing with
+                // the previous event.
+                start_ts = tmp_items[i].ts
+                end_ts = "" + (parseInt(tmp_items[i].ts) + 1)
+                event_type = tmp_items[i].event_type
+            }
+        } else if (event_type == "exited") {
+            // Only current tab can be exited. So look for current tab's start
+            // time in prev_idx.
+            if (prev_idx >= 0  &&
+                tmp_items[prev_idx].domain == tmp_items[i].domain) {
+                start_ts = tmp_items[prev_idx].ts
+                end_ts = tmp_items[i].ts
+                event_type = tmp_items[prev_idx].event_type
+
+                prev_idx = -1
+            } else {
+                // Ignore this event as we could not find corresponding starting
+                // event.
+                continue
+            }
+
+        } else if (event_type == "created" || event_type == "entered") {
+            // Event is "created" or "entered", both of which are continuous
+            // events and need to be paired up with the next matching exited or
+            // closed event.
+            prev_idx = i
+            continue
+        }
+
+        domain = tmp_items[i].domain
         new_items.push({
-            start_ts: tmp_items[i - 1].ts,
-            end_ts: tmp_items[i].ts,
-            event_type: tmp_items[i - 1].event_type,
-            domain: domain
+            start_ts: start_ts,
+            end_ts: end_ts,
+            event_type: event_type,
+            domain: tmp_items[i].domain
         });
 
         if (!(domain in histogram)) {
             histogram[domain] = 0;
         }
         histogram[domain] += (
-          parseInt(tmp_items[i].ts) - parseInt(tmp_items[i - 1].ts)) / MILLISINMIN;
+          parseInt(end_ts) - parseInt(start_ts)) / MILLISINMIN;
     }
-    if (new_len > 0) {
-        domain = tmp_items[new_len - 1].domain;
+
+    // Finally, check for an unclosed prev_idx.
+    if (prev_idx >= 0) {
+        domain = tmp_items[prev_idx].domain;
 
         new_items.push({
-            start_ts: tmp_items[new_len - 1].ts,
-            end_ts: "" + current,
-            event_type: tmp_items[new_len - 1].event_type,
+            start_ts: tmp_items[prev_idx].ts,
+            end_ts: "" + end,
+            event_type: tmp_items[prev_idx].event_type,
             domain: domain
         });
 
@@ -75,7 +126,7 @@ function getDayTimeline(day, items, domains) {
             histogram[domain] = 0;
         }
         histogram[domain] += (
-          parseInt(current) - parseInt(tmp_items[new_len - 1].ts)) / MILLISINMIN;
+          parseInt(end) - parseInt(tmp_items[prev_idx].ts)) / MILLISINMIN;
     }
 
     return [histogram, new_items];

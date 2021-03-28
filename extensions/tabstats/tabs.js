@@ -40,6 +40,9 @@ function postWebRequest(url, payload, cb) {
 
 // Listeners.
 chrome.tabs.onCreated.addListener(function(tab) {
+    // I think I commented this as creation of new tab is captured in updateTab
+    // method as the user enters a new URL which leads to an update event.
+    
     // createTab(tab);
 })
 
