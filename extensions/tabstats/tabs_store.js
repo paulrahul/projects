@@ -93,6 +93,7 @@ function writeTab(ts, url, event_type, platform, dump=false) {
     payload = {};
     key = "stats" + ts
     payload[key] = new_row_json;
+
     chrome.storage.sync.set(payload, function() {
         let log_payload = payload;
         if (dump) {
@@ -152,21 +153,25 @@ function recordTabEvent(tab_id, event_type, ts, dump=false, url=null) {
     if (!tab_url) {
         tab_url = getTabURL(tab_id);
     }
+    
+    if (event_type == "created" || event_type == "entered") {
+        LAST_TAB_URL = tab_url;
+    } else if (event_type == "closed" || event_type == "exited") {
+        LAST_TAB_URL = null
+    }
 
     if (!tab_url) {
         // console.log("Null URL for tab_id: " + tab_id +
         //             ", event_type: " + event_type);
-        return false;
+        return true;
     }
 
     if (!tabAllowed(tab_url)) {
         // console.log("Not writing " + tab_url);
-        return false;
+        return true;
     }
 
-
     writeTab(ts, tab_url, event_type, "Chrome", dump);
-    LAST_TAB_URL = tab_url;
     return true;
 }
 
@@ -183,6 +188,7 @@ function updateTab(tab) {
     new_domain = getDomain(tab.url);
     old_url = getLastTabURL();
     old_domain = getDomain(old_url);
+    LAST_TAB_URL = tab.url
     if (new_domain && old_domain && new_domain == old_domain) {
         if (!domainChangeAllowed(new_domain)) {
             return;
@@ -191,7 +197,7 @@ function updateTab(tab) {
 
     if (!old_domain || new_domain != old_domain) {
         // New domain altogether; record a create event.
-        // console.log("Calling exited in updateTab for: " + old_url);
+        // console.log("Calling closed in updateTab for: " + old_url);
         if (recordTabEvent(
           tab_id=null, "closed", ts=Date.now(), dump=false, url=old_url)) {
             success = createTab(tab);
@@ -203,12 +209,20 @@ function updateTab(tab) {
 }
 
 function visitTab(visited_tab_id) {
-    // console.log("Calling exited in visitTab for: " + getLastTabURL(visited_tab_id));
-    if (recordTabEvent(
-        tab_id=null, "exited", ts=Date.now(), dump=false,
-        url=getLastTabURL(visited_tab_id))) {
-        success = recordTabEvent(
-          visited_tab_id, "entered", ts=Date.now(), dump=false);
+    // console.log("Calling exited in visitTab");
+
+    last_url = getLastTabURL()
+    success =  (
+        (last_url && recordTabEvent(
+            tab_id=null, "exited", ts=Date.now(), dump=false, url=last_url)) ||
+        (!last_url && true))
+
+    // TODO: Bug here since we record the exit event without ensuring if the
+    // entered event will go through or not. Both exited and entered should be
+    // atomically committed. 
+    if (success) {
+        return recordTabEvent(
+            visited_tab_id, "entered", ts=Date.now(), dump=false);
     }
 }
 
@@ -219,7 +233,7 @@ function closeTab(tab_id) {
 
 function unFocusChrome() {
     // Record last tab as having been exited.
-    // console.log("Calling exited in unFocusChrome for: " + getLastTabURL());
+    // console.log("Calling exited in unFocusChrome");
     success = recordTabEvent(
       tab_id=null, "exited", ts=Date.now(), dump=false, url=getLastTabURL());
     LAST_TAB_URL = null;
