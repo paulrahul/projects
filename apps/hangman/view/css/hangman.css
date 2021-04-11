@@ -1,0 +1,15 @@
+.grid-container {
+    display: grid;
+    grid-template-columns: 25% 25% 50fr;
+    grid-template-rows: 20% 80%;
+    gap: 0px 0px;
+    grid-template-areas:
+      "pole-top-left pole-top-right score"
+      "pole-bottom hangman word-game-area";
+  }
+  .pole-bottom { grid-area: pole-bottom; }
+  .pole-top-left { grid-area: pole-top-left; }
+  .pole-top-right { grid-area: pole-top-right; }
+  .hangman { grid-area: hangman; }
+  .word-game-area { grid-area: word-game-area; }
+  .score { grid-area: score; }
