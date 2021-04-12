@@ -40,7 +40,7 @@ function getNewWord() {
     });
 
     $.getJSON(
-        "http://localhost:4000/word",
+        "/word",
         function(data) {
             ans = window.atob(data.word)
             hidden = new Set(data.hidden)

@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -14,7 +14,7 @@ import (
 )
 
 var counter uint64
-var codeFlag *string
+var gameCode string
 
 type response struct {
 	Word   string `json:"word"`
@@ -65,7 +65,7 @@ func authHandler(origHandler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if c.Value != *codeFlag {
+		if c.Value != gameCode {
 			indexHandler(w, r)
 			return
 		}
@@ -92,10 +92,10 @@ func gameEnterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	code := r.PostFormValue("code")
-	if code == *codeFlag {
+	if code == gameCode {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "session_token",
-			Value:   *codeFlag,
+			Value:   gameCode,
 			Expires: time.Now().Add(120 * time.Second),
 		})
 
@@ -106,10 +106,11 @@ func gameEnterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	codeFlag = flag.String("code", "", "Invitation code")
-	flag.Parse()
+	// gameCode = flag.String("code", "", "Invitation code")
+	// flag.Parse()
+	gameCode = os.Getenv("CODE")
 
-	if *codeFlag == "" {
+	if gameCode == "" {
 		panic("Invitation code not provided")
 	}
 
