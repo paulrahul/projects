@@ -81,7 +81,7 @@ function renderHangman() {
     if (img_nbr == 0 || img_nbr > NUM_CHANCES) {
         $("#hangman-ctr").html("")
     } else {
-        html_str = "<img src='../img/" + img_nbr + ".png'></img>"
+        html_str = "<img src='view/img/" + img_nbr + ".png'></img>"
         $("#hangman-ctr").html(html_str)
     }
 }
