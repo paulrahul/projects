@@ -2,6 +2,7 @@ package hangman
 
 import (
 	"math/rand"
+	"strings"
 
 	"github.com/tjarratt/babble"
 )
@@ -11,7 +12,16 @@ func GetNewWord() string {
 	babbler := babble.NewBabbler()
 
 	babbler.Count = 1
-	return babbler.Babble()
+	var word string
+	for {
+		word = babbler.Babble()
+		// Avoid pronouns.
+		if string(word[0]) != strings.ToUpper(string(word[0])) {
+			break
+		}
+	}
+
+	return word
 }
 
 // GetHiddenIndices returns a slice of hidden indices.

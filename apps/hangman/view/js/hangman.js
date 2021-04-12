@@ -8,10 +8,12 @@ init_letters = new Set()
 var game_status = "not_started"
 
 const NUM_CHANCES = 4
+const RETRY_COUNT = 1
 
 letter_map = new Map()
 function init() {
     letter_map.clear()
+    init_letters.clear()
 
     len = ans.length;
     for (i = 0; i < len; ++i) {
@@ -32,8 +34,23 @@ function init() {
 }
 
 function getNewWord() {
-    ans = "battalion"
-    hidden = new Set([1, 2, 3, 4, 5, 7])    
+    // Set the global configs to synchronous 
+    $.ajaxSetup({
+        async: false
+    });
+
+    $.getJSON(
+        "http://localhost:4000/word",
+        function(data) {
+            ans = window.atob(data.word)
+            hidden = new Set(data.hidden)
+        }
+    )
+
+    // Set the global configs back to asynchronous 
+    $.ajaxSetup({
+        async: true
+    });
 }
 
 function processLetter(ch) {
@@ -59,14 +76,16 @@ function getScore() {
 }
 
 function renderWord() {
+    game_ended = gameEnded()
     len = ans.length
     word = ""
     for (i = 0; i < len; ++i) {
-        if (hidden.has(i)) {
+        if (!game_ended && hidden.has(i)) {
             word += "_"
         } else {
-            word += ans[i]
+            word += ans[i].toUpperCase()
         }
+        word += " "
     }
 
     html_str = "<h1>" + word + "</h1><br>"
@@ -94,6 +113,12 @@ function renderScore() {
     }
 
     html_str += "<h2>Score: " + getScore() + "</h2>"
+
+    if (gameStarted()) {
+        html_str += "<h3> Chances left: " +
+                    (NUM_CHANCES - wrong_letters.size) + " </h3>"
+    }
+
     if (gameEnded()) {
         html_str += "<h2> Game Over! Press New Game to start a new one </h2>"
     }
