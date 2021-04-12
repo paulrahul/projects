@@ -3,15 +3,18 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"hangman"
 )
 
 var counter uint64
+var codeFlag *string
 
 type response struct {
 	Word   string `json:"word"`
@@ -47,24 +50,80 @@ func trafficCountHandler(origHandler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func authHandler(origHandler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				// If the cookie is not set, redirect to index page.
+				indexHandler(w, r)
+				return
+			}
+			// For any other type of error, return a bad request status
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, "Unauthorized Access: Bad Request")
+			return
+		}
+
+		if c.Value != *codeFlag {
+			indexHandler(w, r)
+			return
+		}
+
+		origHandler(w, r)
+	}
+}
+
 func gameHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "../../view/pages/hangman.html")
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// Return a HTML which asks for invitation code.
+	http.Redirect(w, r, "/view/pages/", http.StatusSeeOther)
+}
+
+func gameEnterHandler(w http.ResponseWriter, r *http.Request) {
+	// Process invitation code.
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Method %s not supported\n", r.Method)
+		return
+	}
+
+	code := r.PostFormValue("code")
+	if code == *codeFlag {
+		http.SetCookie(w, &http.Cookie{
+			Name:    "session_token",
+			Value:   *codeFlag,
+			Expires: time.Now().Add(120 * time.Second),
+		})
+
+		http.Redirect(w, r, "/game", http.StatusSeeOther)
+	} else {
+		indexHandler(w, r)
+	}
 }
 
 func main() {
+	codeFlag = flag.String("code", "", "Invitation code")
+	flag.Parse()
+
+	if *codeFlag == "" {
+		panic("Invitation code not provided")
+	}
+
 	log.SetFlags(log.Lshortfile)
 
 	http.HandleFunc("/", trafficCountHandler(indexHandler))
 
+	http.HandleFunc("/enter", gameEnterHandler)
+
 	http.HandleFunc("/status", statusHandler)
 
-	http.HandleFunc("/word", trafficCountHandler(wordHandler))
+	http.HandleFunc("/word", authHandler(trafficCountHandler(wordHandler)))
 
-	http.HandleFunc("/game", trafficCountHandler(gameHandler))
+	http.HandleFunc("/game", authHandler(trafficCountHandler(gameHandler)))
 
 	fs := http.FileServer(http.Dir("../../view"))
 	http.Handle("/view/", http.StripPrefix("/view", fs))
