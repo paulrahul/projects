@@ -45,7 +45,10 @@ function getNewWord() {
             ans = window.atob(data.word)
             hidden = new Set(data.hidden)
         }
-    )
+    ).fail(function() {
+        // Go back to index.
+        window.location.replace("/")
+    })
 
     // Set the global configs back to asynchronous 
     $.ajaxSetup({
@@ -88,9 +91,22 @@ function renderWord() {
         word += " "
     }
 
-    html_str = "<h1>" + word + "</h1><br>"
-    html_str += "Wrong letters: " +
-        Array.from(wrong_letters.values()).map(x=> { return x.toUpperCase();})
+    html_str = "<h1 class='word'>" + word + "</h1>"
+
+    if (gameStarted()) {
+        html_str += "<h3 class='input'> <form> " +
+        "<label for='letter_input'>Your Next letter </label> " +
+        "<input id='letter_input' type='text' maxlength='1' size='1'> " +
+        "</form> </h3>"
+    }
+
+    html_str += "<h3 class='wrong'> Wrong letters: " +
+        Array.from(wrong_letters.values()).map(x=> { return x.toUpperCase();}) +
+        " </h3>"
+
+    if (gameStarted()) {
+        html_str += "<h4 class='help'> *Press any letter key to play. </h4>"
+    }
 
     $("#word-game").html(html_str)
 }
@@ -100,7 +116,7 @@ function renderHangman() {
     if (img_nbr == 0 || img_nbr > NUM_CHANCES) {
         $("#hangman-ctr").html("")
     } else {
-        html_str = "<img src='view/img/" + img_nbr + ".png'></img>"
+        html_str = "<img src='/view/img/" + img_nbr + ".png'></img>"
         $("#hangman-ctr").html(html_str)
     }
 }
@@ -109,18 +125,18 @@ function renderScore() {
     var html_str = ""
     if (!gameStarted()) {
         html_str =  "<form><input type='button' value='New Game' " +
-            "id='new_game_btn' onclick='startGame()'></form>"
+            "id='new_game_btn' onclick='startGame()'> or Press N </form>"
     }
 
-    html_str += "<h2>Score: " + getScore() + "</h2>"
+    html_str += "<h3 class='score'>Score: " + getScore() + "<br>"
 
     if (gameStarted()) {
-        html_str += "<h3> Chances left: " +
+        html_str += "Chances left: " +
                     (NUM_CHANCES - wrong_letters.size) + " </h3>"
     }
 
     if (gameEnded()) {
-        html_str += "<h2> Game Over! Press New Game to start a new one </h2>"
+        html_str += "<h3 class='over'> Game Over! Press 'New Game' or N to start a new one </h3>"
     }
 
     $("#score-msg").html(html_str)
@@ -140,6 +156,7 @@ function startGame() {
     getNewWord()
     init()
     updateGame()
+    $("#letter_input").focus();
 }
 
 function endGame() {
@@ -154,18 +171,15 @@ function updateGame() {
 
 // Handlers
 
-$(document).ready(function(){
-    init()
-    renderScore()
-});
-
-$(document).keypress(function(event){
-    if (!gameStarted()) {
+function handleKeyPressEvent(event) {
+    ch = String.fromCharCode(event.which).toLowerCase()
+    $("#letter_input").val("");
+    if (!(ch >= 'a' && ch <= 'z')) {
         return
     }
 
-    ch = String.fromCharCode(event.which).toLowerCase()
-    if (!(ch >= 'a' && ch <= 'z')) {
+    if (!gameStarted() && ch == 'n') {
+        startGame()
         return
     }
 
@@ -176,4 +190,14 @@ $(document).keypress(function(event){
     }
 
     updateGame()
+    $("#letter_input").focus();
+}
+
+$(document).ready(function(){
+    init()
+    renderScore()
+});
+
+$(document).on('keydown', function(event) {
+    handleKeyPressEvent(event)
 });
