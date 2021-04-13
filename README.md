@@ -14,6 +14,13 @@ The current set of apps checked in here:
 2. **[Stats server](https://github.com/paulrahul/projects/tree/master/apps/stats/server)** - Just a GRPC based basic Stats service with a client implementation using both synchronous and asynchronous modes of calling the backend API. Implemented this to get acquainted with GRPC and Proto3.
 	- Stack: C++, gRPC (sync, async, streaming), Proto3, Bazel build
 	- Pending Work: Leverage it in some other useful project as scalable stats persistence and reporting is a much needed feature in most projects.
+3. **[wordgame](https://github.com/paulrahul/projects/tree/master/apps/wordgame)** - A simple hangman based word game 
+	- Stack: Go, JS, CSS, HTML, Heroku
+	- Pending work: 
+		- Replace Hangman with an image fetched from the web.
+		- Provide hints with penalty points.
+		- User login and score history
+	- [Live link](https://itzonlyword.herokuapp.com/)
 
 
 ##### Extensions (Chrome extensions)
