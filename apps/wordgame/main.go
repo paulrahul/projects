@@ -143,12 +143,12 @@ func authHandler(origHandler http.HandlerFunc) http.HandlerFunc {
 }
 
 func gameHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/view/pages/hangman.html", http.StatusSeeOther)
+	http.Redirect(w, r, "/static/pages/hangman.html", http.StatusSeeOther)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// Return a HTML which asks for invitation code.
-	http.Redirect(w, r, "/view/pages/", http.StatusSeeOther)
+	http.Redirect(w, r, "/static/pages/", http.StatusSeeOther)
 }
 
 func gameEnterHandler(w http.ResponseWriter, r *http.Request) {
@@ -197,8 +197,8 @@ func main() {
 
 	http.HandleFunc("/game", authHandler(trafficCountHandler(gameHandler)))
 
-	fs := http.FileServer(http.Dir("./view"))
-	http.Handle("/view/", http.StripPrefix("/view", fs))
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static", fs))
 
 	port := os.Getenv("PORT")
 	if port == "" {
