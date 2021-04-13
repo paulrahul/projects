@@ -120,23 +120,23 @@ func trafficCountHandler(origHandler http.HandlerFunc) http.HandlerFunc {
 
 func authHandler(origHandler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("session_token")
-		if err != nil {
-			if err == http.ErrNoCookie {
-				// If the cookie is not set, redirect to index page.
-				indexHandler(w, r)
-				return
-			}
-			// For any other type of error, return a bad request status
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, "Unauthorized Access: Bad Request")
-			return
-		}
+		// c, err := r.Cookie("session_token")
+		// if err != nil {
+		// 	if err == http.ErrNoCookie {
+		// 		// If the cookie is not set, redirect to index page.
+		// 		indexHandler(w, r)
+		// 		return
+		// 	}
+		// 	// For any other type of error, return a bad request status
+		// 	w.WriteHeader(http.StatusBadRequest)
+		// 	fmt.Fprintln(w, "Unauthorized Access: Bad Request")
+		// 	return
+		// }
 
-		if c.Value != gameCode {
-			indexHandler(w, r)
-			return
-		}
+		// if c.Value != gameCode {
+		// 	indexHandler(w, r)
+		// 	return
+		// }
 
 		origHandler(w, r)
 	}
@@ -176,18 +176,18 @@ func gameEnterHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	// gameCode = flag.String("code", "", "Invitation code")
 	// flag.Parse()
-	gameCode = os.Getenv("CODE")
+	// gameCode = os.Getenv("CODE")
 
-	if gameCode == "" {
-		panic("Invitation code not provided")
-	}
+	// if gameCode == "" {
+	// 	panic("Invitation code not provided")
+	// }
 
 	log.SetFlags(log.Lshortfile)
 
 	initWords()
 	log.Println("Loaded dictionary")
 
-	http.HandleFunc("/", trafficCountHandler(indexHandler))
+	http.HandleFunc("/", trafficCountHandler(gameHandler))
 
 	http.HandleFunc("/enter", gameEnterHandler)
 
