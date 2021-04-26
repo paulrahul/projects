@@ -6,16 +6,20 @@ async function sleep(seconds) {
                         seconds * 1000));
 }
 
-function test() {
+function runTest() {
     createTestTab("google.com")
-    createTestTab("reddit.com")
-    createTestTab("news.ycombinator.com")
+    createTestTab("reddit.com", 1)
+    createTestTab("news.ycombinator.com", 2)
 
-    visitTestTab("reddit.com")
-    deleteTestTab("reddit.com")
+    visitTestTab("reddit.com", 3)
+    deleteTestTab("reddit.com", 4)
 }
 
-function createTestTab(url) {
+async function createTestTab(url, delay_mins=null) {
+    if (delay_mins) {
+        sleep(delay_mins * 60)
+    }
+
     createProperties = {
         url: url,
         active: true
@@ -26,7 +30,11 @@ function createTestTab(url) {
     });
 }
 
-function visitTestTab(url) {
+async function visitTestTab(url, delay_mins=null) {
+    if (delay_mins) {
+        sleep(delay_mins * 60)
+    }
+
     highlightInfo = {
         tabs: [url_id_map[url]]
     };
@@ -35,7 +43,11 @@ function visitTestTab(url) {
     });
 }
 
-function deleteTestTab(url) {
+function deleteTestTab(url, delay_mins=null) {
+    if (delay_mins) {
+        sleep(delay_mins * 60)
+    }
+
     chrome.tabs.remove(url_id_map[url], function() {
     });
 }
