@@ -1,0 +1,20 @@
+{
+  "name": "tabstats",
+  "version": "1.0.0",
+  "description": "Chrome extension to collect usage stats.",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "stats",
+    "tab"
+  ],
+  "author": "Rahul Paul",
+  "license": "ISC",
+  "dependencies": {
+    "ejs":"3.1.6",
+    "recharts":"2.0.8",
+    "redis": ">=3.1.1"
+  }
+}
