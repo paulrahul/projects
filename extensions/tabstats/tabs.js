@@ -22,6 +22,7 @@ PUSHUPS_INTERVAL_MINS = 240;
 function bootStrap() {
     loadAllTabs();
     runGC();
+    runTest();
 }
 
 function postWebRequest(url, payload, cb) {
