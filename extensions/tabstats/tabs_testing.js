@@ -3,14 +3,19 @@ url_index_map = {}
 
 async function createTestTab(url) {
     createProperties = {
-        url: url,
         active: true
     };
 
+    updateProperties = {
+        url: url
+    };
+
     testLog("Creating tab: " + url)
-    chrome.tabs.create(createProperties, function(tab) {
-        url_id_map[url] = tab.id
-        url_index_map[url] = tab.index
+    chrome.tabs.create(createProperties, function(createdTab) {
+        chrome.tabs.update(createdTab.id, updateProperties, function(updatedTab) {
+            url_id_map[url] = createdTab.id
+            url_index_map[url] = createdTab.index
+        });
     });
 }
 
@@ -43,7 +48,7 @@ function testLog(str) {
 async function performAfterDelay(cb, args, delay_mins=null) {
     if (delay_mins) {
         // console.log("Before sleep of " + delay_mins)
-        await sleep(delay_mins * 60)
+        await sleep(delay_mins * 2)
         // console.log("After sleep")
     }
 
@@ -53,13 +58,13 @@ async function performAfterDelay(cb, args, delay_mins=null) {
 
 async function runTest() {
     testLog("Starting Test")
-    await performAfterDelay(createTestTab, "google.com")
-    await performAfterDelay(createTestTab, "reddit.com", 1)
-    await performAfterDelay(createTestTab, "news.ycombinator.com", 2)
+    await performAfterDelay(createTestTab, "freightwaves.com")
+    await performAfterDelay(createTestTab, "krebsonsecurity.com", 1)
+    await performAfterDelay(createTestTab, "mightyapp.com", 2)
 
-    await performAfterDelay(visitTestTab, "reddit.com", 3)
+    await performAfterDelay(visitTestTab, "krebsonsecurity.com", 3)
 
-    await performAfterDelay(deleteTestTab, "reddit.com", 4)
+    await performAfterDelay(deleteTestTab, "krebsonsecurity.com", 4)
     testLog("Ending Test")
 }
 
