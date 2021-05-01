@@ -94,13 +94,13 @@ function writeTab(ts, url, event_type, platform, dump=false) {
     key = "stats" + ts
     payload[key] = new_row_json;
 
+    console.log("To write: " + JSON.stringify(payload))
     chrome.storage.sync.set(payload, function() {
         let log_payload = payload;
         if (dump) {
             // dumpStore();
             gcStore();
         }
-        // console.log('Written ' + JSON.stringify(log_payload));
     });
 }
 
@@ -161,13 +161,13 @@ function recordTabEvent(tab_id, event_type, ts, dump=false, url=null) {
     }
 
     if (!tab_url) {
-        // console.log("Null URL for tab_id: " + tab_id +
-        //             ", event_type: " + event_type);
+        console.log("Null URL for tab_id: " + tab_id +
+                    ", event_type: " + event_type);
         return true;
     }
 
     if (!tabAllowed(tab_url)) {
-        // console.log("Not writing " + tab_url);
+        console.log("Not writing " + tab_url);
         return true;
     }
 
@@ -210,8 +210,14 @@ function updateTab(tab) {
 
 function visitTab(visited_tab_id) {
     // console.log("Calling exited in visitTab");
+    visitedTabURL = getTabURL(visited_tab_id)
+    if (!visitedTabURL) {
+        LAST_TAB_URL = null
+        return
+    }
 
     last_url = getLastTabURL()
+    console.log("last_url: " + last_url)
     success =  (
         (last_url && recordTabEvent(
             tab_id=null, "exited", ts=Date.now(), dump=false, url=last_url)) ||
@@ -222,7 +228,7 @@ function visitTab(visited_tab_id) {
     // atomically committed. 
     if (success) {
         return recordTabEvent(
-            visited_tab_id, "entered", ts=Date.now(), dump=false);
+            tab_id=null, "entered", ts=Date.now(), dump=false, url=visitedTabURL);
     }
 }
 

@@ -43,93 +43,94 @@ function getDayTimeline(day, items, domains) {
     }
 
     tmp_items.sort((a, b) => (parseInt(a.ts) - parseInt(b.ts)));
+    return tmp_items;
 
-    new_items = [];
-    histogram = {};
-    prev_idx = -1
-    start_ts = 0
-    end_ts = 0
-    event_type = ""
+    // new_items = [];
+    // histogram = {};
+    // prev_idx = -1
+    // start_ts = 0
+    // end_ts = 0
+    // event_type = ""
 
-    for (i = 0; i < new_len; ++i) {
-        event_type = tmp_items[i].event_type
-        if (event_type == "closed") {
-            // Can be for either of these two cases:
-            // 1. When the current tab is closed i.e. the one which was
-            // last created or entered. Check for prev_idx.
-            if (prev_idx >= 0  &&
-                tmp_items[prev_idx].domain == tmp_items[i].domain) {
-                start_ts = tmp_items[prev_idx].ts
-                end_ts = tmp_items[i].ts
-                event_type = tmp_items[prev_idx].event_type
+    // for (i = 0; i < new_len; ++i) {
+    //     event_type = tmp_items[i].event_type
+    //     if (event_type == "closed") {
+    //         // Can be for either of these two cases:
+    //         // 1. When the current tab is closed i.e. the one which was
+    //         // last created or entered. Check for prev_idx.
+    //         if (prev_idx >= 0  &&
+    //             tmp_items[prev_idx].domain == tmp_items[i].domain) {
+    //             start_ts = tmp_items[prev_idx].ts
+    //             end_ts = tmp_items[i].ts
+    //             event_type = tmp_items[prev_idx].event_type
 
-                prev_idx = -1
-            } else {
-                // Or 2. When some other tab is closed which is not in focus.
-                // For this, it's a point in time event with no bearing with
-                // the previous event.
-                start_ts = tmp_items[i].ts
-                end_ts = "" + (parseInt(tmp_items[i].ts) + 1)
-                event_type = tmp_items[i].event_type
-            }
-        } else if (event_type == "exited") {
-            // Only current tab can be exited. So look for current tab's start
-            // time in prev_idx.
-            if (prev_idx >= 0  &&
-                tmp_items[prev_idx].domain == tmp_items[i].domain) {
-                start_ts = tmp_items[prev_idx].ts
-                end_ts = tmp_items[i].ts
-                event_type = tmp_items[prev_idx].event_type
+    //             prev_idx = -1
+    //         } else {
+    //             // Or 2. When some other tab is closed which is not in focus.
+    //             // For this, it's a point in time event with no bearing with
+    //             // the previous event.
+    //             start_ts = tmp_items[i].ts
+    //             end_ts = "" + (parseInt(tmp_items[i].ts) + 1)
+    //             event_type = tmp_items[i].event_type
+    //         }
+    //     } else if (event_type == "exited") {
+    //         // Only current tab can be exited. So look for current tab's start
+    //         // time in prev_idx.
+    //         if (prev_idx >= 0  &&
+    //             tmp_items[prev_idx].domain == tmp_items[i].domain) {
+    //             start_ts = tmp_items[prev_idx].ts
+    //             end_ts = tmp_items[i].ts
+    //             event_type = tmp_items[prev_idx].event_type
 
-                prev_idx = -1
-            } else {
-                // Ignore this event as we could not find corresponding starting
-                // event.
-                continue
-            }
+    //             prev_idx = -1
+    //         } else {
+    //             // Ignore this event as we could not find corresponding starting
+    //             // event.
+    //             continue
+    //         }
 
-        } else if (event_type == "created" || event_type == "entered") {
-            // Event is "created" or "entered", both of which are continuous
-            // events and need to be paired up with the next matching exited or
-            // closed event.
-            prev_idx = i
-            continue
-        }
+    //     } else if (event_type == "created" || event_type == "entered") {
+    //         // Event is "created" or "entered", both of which are continuous
+    //         // events and need to be paired up with the next matching exited or
+    //         // closed event.
+    //         prev_idx = i
+    //         continue
+    //     }
 
-        domain = tmp_items[i].domain
-        new_items.push({
-            start_ts: start_ts,
-            end_ts: end_ts,
-            event_type: event_type,
-            domain: tmp_items[i].domain
-        });
+    //     domain = tmp_items[i].domain
+    //     new_items.push({
+    //         start_ts: start_ts,
+    //         end_ts: end_ts,
+    //         event_type: event_type,
+    //         domain: tmp_items[i].domain
+    //     });
 
-        if (!(domain in histogram)) {
-            histogram[domain] = 0;
-        }
-        histogram[domain] += (
-          parseInt(end_ts) - parseInt(start_ts)) / MILLISINMIN;
-    }
+    //     if (!(domain in histogram)) {
+    //         histogram[domain] = 0;
+    //     }
+    //     histogram[domain] += (
+    //       parseInt(end_ts) - parseInt(start_ts)) / MILLISINMIN;
+    // }
 
-    // Finally, check for an unclosed prev_idx.
-    if (prev_idx >= 0) {
-        domain = tmp_items[prev_idx].domain;
+    // // Finally, check for an unclosed prev_idx.
+    // if (prev_idx >= 0) {
+    //     domain = tmp_items[prev_idx].domain;
 
-        new_items.push({
-            start_ts: tmp_items[prev_idx].ts,
-            end_ts: "" + end,
-            event_type: tmp_items[prev_idx].event_type,
-            domain: domain
-        });
+    //     new_items.push({
+    //         start_ts: tmp_items[prev_idx].ts,
+    //         end_ts: "" + end,
+    //         event_type: tmp_items[prev_idx].event_type,
+    //         domain: domain
+    //     });
 
-        if (!(domain in histogram)) {
-            histogram[domain] = 0;
-        }
-        histogram[domain] += (
-          parseInt(end) - parseInt(tmp_items[prev_idx].ts)) / MILLISINMIN;
-    }
+    //     if (!(domain in histogram)) {
+    //         histogram[domain] = 0;
+    //     }
+    //     histogram[domain] += (
+    //       parseInt(end) - parseInt(tmp_items[prev_idx].ts)) / MILLISINMIN;
+    // }
 
-    return [histogram, new_items];
+    // return [histogram, new_items];
 }
 
 function processDomainStats(items) {
@@ -211,6 +212,32 @@ function limitHistogramDomains(histogram, limit) {
 
     return sorted_obj;
 }
+
+function test() {
+    // day = "20210429";
+    day = utils.getCurrentYYYYMMDD()
+   
+    fetchDayUsageStats(day, null, function(err, items) {
+        if (err) {
+            cb(err, items);
+        } else {
+            // Then fetch the domains data.
+            domains = Object.keys(items);
+            redisdb.fetchDomainData(domains, function(err, domain_items) {
+                if (!err) {
+                    day_data = getDayTimeline(day, domain_items, domains);
+                    for (item of day_data) {
+                        dt = new Date(parseInt(item.ts))
+                        console.log("[" + dt + "]" + item.domain + " (" + item.subdomain + ") " + item.event_type)
+                    }
+                }
+            });
+        }
+    });
+}
+
+test()
+
 
 exports.fetchDayUsageStats = fetchDayUsageStats;
 exports.fetchDaySummaryData = fetchDaySummaryData;

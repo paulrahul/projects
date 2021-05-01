@@ -1,5 +1,4 @@
-url_id_map = {}
-url_index_map = {}
+all_tabs = {}
 
 async function createTestTab(url) {
     createProperties = {
@@ -13,15 +12,14 @@ async function createTestTab(url) {
     testLog("Creating tab: " + url)
     chrome.tabs.create(createProperties, function(createdTab) {
         chrome.tabs.update(createdTab.id, updateProperties, function(updatedTab) {
-            url_id_map[url] = createdTab.id
-            url_index_map[url] = createdTab.index
+            all_tabs[url] = updatedTab
         });
     });
 }
 
 async function visitTestTab(url) {
     highlightInfo = {
-        tabs: [url_index_map[url]]
+        tabs: [all_tabs[url].index]
     };
 
     testLog("Visiting tab: " + url)
@@ -29,9 +27,17 @@ async function visitTestTab(url) {
     });
 }
 
+async function getAllTabs() {
+    chrome.tabs.query({}, function(tabs) {
+        for (tab of tabs) {
+            console.log(tab.url + " in index: " + tab.index)
+        }
+    });
+}
+
 function deleteTestTab(url) {
     testLog("Deleting tab: " + url)
-    chrome.tabs.remove(url_id_map[url], function() {
+    chrome.tabs.remove(all_tabs[url].id, function() {
     });
 }
 
@@ -58,13 +64,14 @@ async function performAfterDelay(cb, args, delay_mins=null) {
 
 async function runTest() {
     testLog("Starting Test")
-    await performAfterDelay(createTestTab, "freightwaves.com")
-    await performAfterDelay(createTestTab, "krebsonsecurity.com", 1)
-    await performAfterDelay(createTestTab, "mightyapp.com", 2)
+    await performAfterDelay(createTestTab, "yahoo.com")
+    await performAfterDelay(createTestTab, "google.com", 2)
+    await performAfterDelay(createTestTab, "rediff.com", 3)
 
-    await performAfterDelay(visitTestTab, "krebsonsecurity.com", 3)
+    // await getAllTabs()
+    await performAfterDelay(visitTestTab, "rediff.com", 4)
 
-    await performAfterDelay(deleteTestTab, "krebsonsecurity.com", 4)
+    await performAfterDelay(deleteTestTab, "google.com", 5)
     testLog("Ending Test")
 }
 
