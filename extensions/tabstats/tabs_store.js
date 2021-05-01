@@ -20,8 +20,6 @@ TAGS = {
 DISALLOWED_TABS = ["chrome://newtab/", "chrome://extensions/"];
 SAME_DOMAIN_EXCEPTIONS = ["reddit.com"];
 
-LAST_TAB_URL = null;
-
 // Debugging methods.
 function dumpStore(query) {
     chrome.storage.sync.get(query, function(items) {
@@ -33,6 +31,7 @@ function dumpStore(query) {
 }
 
 all_tabs = {}
+last_visited_tab = null
 
 // Tab API methods.
 // Get all existing tabs
@@ -94,7 +93,7 @@ function writeTab(ts, url, event_type, platform, dump=false) {
     key = "stats" + ts
     payload[key] = new_row_json;
 
-    console.log("To write: " + JSON.stringify(payload))
+    // console.log("To write: " + JSON.stringify(payload))
     chrome.storage.sync.set(payload, function() {
         let log_payload = payload;
         if (dump) {
@@ -153,21 +152,15 @@ function recordTabEvent(tab_id, event_type, ts, dump=false, url=null) {
     if (!tab_url) {
         tab_url = getTabURL(tab_id);
     }
-    
-    if (event_type == "created" || event_type == "entered") {
-        LAST_TAB_URL = tab_url;
-    } else if (event_type == "closed" || event_type == "exited") {
-        LAST_TAB_URL = null
-    }
 
     if (!tab_url) {
-        console.log("Null URL for tab_id: " + tab_id +
-                    ", event_type: " + event_type);
+        // console.log("Null URL for tab_id: " + tab_id +
+        //             ", event_type: " + event_type);
         return true;
     }
 
     if (!tabAllowed(tab_url)) {
-        console.log("Not writing " + tab_url);
+        // console.log("Not writing " + tab_url);
         return true;
     }
 
@@ -177,6 +170,7 @@ function recordTabEvent(tab_id, event_type, ts, dump=false, url=null) {
 
 function createTab(tab) {
     all_tabs[tab.id] = tab;
+    last_visited_tab = tab
     return recordTabEvent(
       tab_id=null, "created", ts=Date.now(), dump=false, url=tab.url);
 }
@@ -188,23 +182,29 @@ function updateTab(tab) {
     new_domain = getDomain(tab.url);
     old_url = getLastTabURL();
     old_domain = getDomain(old_url);
-    LAST_TAB_URL = tab.url
+    old_tab_id = getLastTabId()
+    last_visited_tab = tab
     if (new_domain && old_domain && new_domain == old_domain) {
         if (!domainChangeAllowed(new_domain)) {
             return;
         }
     }
 
-    if (!old_domain || new_domain != old_domain) {
+    if (!old_domain || new_domain != old_domain ||
+        (new_domain.includes("reddit.com") &&
+         subRedditChanged(old_url, tab.url))) {
         // New domain altogether; record a create event.
         // console.log("Calling closed in updateTab for: " + old_url);
-        if (recordTabEvent(
-          tab_id=null, "closed", ts=Date.now(), dump=false, url=old_url)) {
-            success = createTab(tab);
+        if (tab.id == old_tab_id) {
+            success = recordTabEvent(
+                tab_id=null, "closed", ts=Date.now(), dump=false, url=old_url)
+        } else {
+            success = recordTabEvent(
+                tab_id=null, "exited", ts=Date.now(), dump=false, url=old_url)
         }
-    } else if (new_domain.includes("reddit.com") &&
-               subRedditChanged(old_url, tab.url)) {
-        visitTab(tab.id);
+        if (success) {
+            success = createTab(tab)
+        }
     }
 }
 
@@ -212,11 +212,18 @@ function visitTab(visited_tab_id) {
     // console.log("Calling exited in visitTab");
     visitedTabURL = getTabURL(visited_tab_id)
     if (!visitedTabURL) {
-        LAST_TAB_URL = null
+        // last_visited_tab = null
         return
     }
 
     last_url = getLastTabURL()
+    last_tab_id = getLastTabId()
+    if (last_tab_id && !getTab(last_tab_id)) {
+        // Last tab is closed
+        last_url = null
+    }
+
+    last_visited_tab = getTab(visited_tab_id)
     console.log("last_url: " + last_url)
     success =  (
         (last_url && recordTabEvent(
@@ -242,36 +249,46 @@ function unFocusChrome() {
     // console.log("Calling exited in unFocusChrome");
     success = recordTabEvent(
       tab_id=null, "exited", ts=Date.now(), dump=false, url=getLastTabURL());
-    LAST_TAB_URL = null;
+    last_visited_tab = null;
 }
 
 function getTabURL(tab_id) {
-    if (Object.keys(all_tabs).length == 0) {
-      loadAllTabs()
+    tab = getTab(tab_id)
+    if (tab) {
+        return tab.url
     }
+    return null
+}
 
-    // console.log(tab_id + ", " + Object.keys(all_tabs));
-
-    if (tab_id in all_tabs) {
-        return all_tabs[tab_id].url;
+function getLastTabURL() {
+    if (last_visited_tab) {
+        return last_visited_tab.url;
     }
-
+    // TODO: Fetch last tab url from DB
     return null;
 }
 
-function getLastTabURL(tab_id=null) {
-    if (LAST_TAB_URL) {
-        return LAST_TAB_URL;
-    } else if (tab_id) {
-        LAST_TAB_URL = getTabURL(tab_id);
+function getLastTabId() {
+    if (last_visited_tab) {
+        return last_visited_tab.id;
     }
-
     // TODO: Fetch last tab url from DB
-    return LAST_TAB_URL;
+    return null;
 }
 
-function getTab(tab_id, cb) {
-    chrome.tabs.get(tab_id, cb);
+function getTab(tab_id) {
+    if (Object.keys(all_tabs).length == 0) {
+        loadAllTabs()
+    }
+  
+    // console.log(tab_id + ", " + Object.keys(all_tabs));
+  
+    if (tab_id in all_tabs) {
+        return all_tabs[tab_id];
+    }
+  
+    return null;
+    // chrome.tabs.get(tab_id, cb);
 }
 
 function getAllStoreTabs(cb) {

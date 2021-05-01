@@ -64,14 +64,14 @@ async function performAfterDelay(cb, args, delay_mins=null) {
 
 async function runTest() {
     testLog("Starting Test")
-    await performAfterDelay(createTestTab, "yahoo.com")
-    await performAfterDelay(createTestTab, "google.com", 2)
-    await performAfterDelay(createTestTab, "rediff.com", 3)
+    await performAfterDelay(createTestTab, "thehustle.co")
+    await performAfterDelay(createTestTab, "time.com", 2)
+    await performAfterDelay(createTestTab, "theverge.com", 3)
 
     // await getAllTabs()
-    await performAfterDelay(visitTestTab, "rediff.com", 4)
+    await performAfterDelay(visitTestTab, "time.com", 4)
 
-    await performAfterDelay(deleteTestTab, "google.com", 5)
+    await performAfterDelay(deleteTestTab, "time.com", 5)
     testLog("Ending Test")
 }
 

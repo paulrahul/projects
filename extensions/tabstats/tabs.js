@@ -22,7 +22,7 @@ PUSHUPS_INTERVAL_MINS = 240;
 function bootStrap() {
     loadAllTabs();
     runGC();
-    runTest();
+    // runTest();
 }
 
 function postWebRequest(url, payload, cb) {
@@ -56,7 +56,7 @@ chrome.tabs.onUpdated.addListener(function(tab_id, change_info, tab) {
 chrome.tabs.onHighlighted.addListener(function(highlightInfo) {
     tabIds = highlightInfo.tabIds
     for (tabId of tabIds) {
-        console.log("Visiting tab: " + tabId)  // bug: create is also calling highlight
+        // console.log("Visiting tab: " + tabId)  // bug: create is also calling highlight
         visitTab(tabId);
     }
 })
