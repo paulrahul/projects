@@ -20,9 +20,10 @@ class Radio5Session:
 
         return True
 
-    def fetch_radio5_likes(self):
+    def fetch_radio5_likes(self, contributor_id):
         res = requests.get(
-            BASE_URL + 'contributor/likes/5d33087d06fb03d88724d6f7?page=1&size=50',
+            BASE_URL + 'contributor/likes/' +
+            contributor_id + '?page=1&size=50',
             cookies=self.cookies)
         if res.status_code != 200:
             print("Retrieving likes failed due to: " + res.reason)
@@ -46,7 +47,7 @@ if __name__ == "__main__":
 
     ret = sess.login_radio5(props['uname'], props['pwd'])
     if ret:
-        likes = sess.fetch_radio5_likes()
+        likes = sess.fetch_radio5_likes(props['contributor_id'])
         sess.import_likes(likes)
 
 
