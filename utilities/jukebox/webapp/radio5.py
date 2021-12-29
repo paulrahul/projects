@@ -31,8 +31,11 @@ class Radio5Session:
         return json.loads(res.text)
 
     def import_likes(self, likes):
+        ret = []
         for l in likes:
-            print(l['title'] + ' - ' + l['artist'])
+            ret.append({'title' : l['title'], 'artist' : l['artist']})
+
+        return ret
 
 if __name__ == "__main__":
     file_name = "./props.txt"
@@ -47,6 +50,4 @@ if __name__ == "__main__":
     ret = sess.login_radio5(props['uname'], props['pwd'])
     if ret:
         likes = sess.fetch_radio5_likes(props['contributor_id'])
-        sess.import_likes(likes)
-
-
+        print(sess.import_likes(likes))
