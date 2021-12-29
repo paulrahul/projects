@@ -35,8 +35,6 @@ class Radio5Session:
             print(l['title'] + ' - ' + l['artist'])
 
 if __name__ == "__main__":
-    sess = Radio5Session()
-
     file_name = "./props.txt"
 
     props = {}
@@ -45,6 +43,7 @@ if __name__ == "__main__":
             entry = l.split('=')
             props[entry[0]] = entry[1].strip('\n')
 
+    sess = Radio5Session()
     ret = sess.login_radio5(props['uname'], props['pwd'])
     if ret:
         likes = sess.fetch_radio5_likes(props['contributor_id'])
