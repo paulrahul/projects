@@ -1,0 +1,14 @@
+runtime: go119
+env: standard
+instance_class: F1
+main: ./cmd/main
+handlers:
+  - url: /.*
+    script: auto
+  - url: .*
+    script: auto
+automatic_scaling:
+  min_idle_instances: automatic
+  max_idle_instances: automatic
+  min_pending_latency: automatic
+  max_pending_latency: automatic
