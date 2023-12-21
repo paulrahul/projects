@@ -2,18 +2,19 @@
 import argparse
 from collections import OrderedDict
 from datetime import datetime
+import re
 
 DATE_DELIMITER = ";"
 ENTRY_DELIMITER = "->"
+USUAL_DAY_START_TIME = "9:30"
 
 class TimeTracker:
     def __init__(self, filename):
         self.filename = filename
-        self.last_date = None
         self.entries = OrderedDict()
         
         raw_data = self._read_data_from_file()
-        (self.entries, self.last_date) = self._load_data(raw_data)
+        self.entries = self._load_data(raw_data)
         
 
     def _save_data_to_file(self, data):
@@ -45,27 +46,31 @@ class TimeTracker:
                 curr_entries[key] = value
                  
             entries[curr_date] = curr_entries
-            
-        last_date = list(entries.keys())[-1] if len(entries) > 0 else None
         
-        return (entries, last_date)
+        return entries
             
     def add_entry(self, new_entry):
-        last_entry_date = datetime.strptime(self.last_date, "%d/%m/%Y").date()
-        current_date = datetime.today().date()
+        current_date = datetime.today().date().strftime("%d/%m/%Y")
         
         new_entry_string = ""
-        if last_entry_date == current_date:
+        if current_date in self.entries:
             # So an entry for today has already been made. We just need to add
             # -><new entry>
             new_entry_string = "->"
         else:
             # In a new line, add current date's entry and then this new
             # entry i.e. \ncurrent_date;<new_entry>
-            new_entry_string = "\n" + current_date.strftime("%d/%m/%Y") + DATE_DELIMITER
+            new_entry_string = "\n" + current_date + DATE_DELIMITER
+            if not _is_time_range(new_entry.split(ENTRY_DELIMITER, 1)[0]):       
+                new_entry_string += USUAL_DAY_START_TIME + "-"
             
         new_entry_string += new_entry
+        
         self._save_data_to_file(new_entry_string)
+        if current_date not in self.entries:
+            self.entries[current_date] = {}
+        splits = new_entry.split(ENTRY_DELIMITER)
+        self.entries[current_date][splits[0]] = splits[1]
         
     def print_entries(self, since=1):
         rev_entries = reversed(self.entries)
@@ -87,6 +92,16 @@ class TimeTracker:
 
         print()
         
+def _is_time_range(input_string):
+    # Define the pattern for the desired format
+    pattern = re.compile(r'^\d{1,2}(:\d{2})?-\d{1,2}:\d{2}$')
+
+    # Check if the input string matches the pattern
+    match = pattern.match(input_string)
+
+    # Return True if the input is in the specified format
+    return bool(match)
+        
 
 def main():
     parser = argparse.ArgumentParser(description='Time Tracker')
@@ -102,10 +117,14 @@ def main():
 
     while True:
         user_input = input('Add a new entry? [y/n] : ').strip().lower()
-        if user_input != "y":
+        if user_input == "n":
             break
 
-        entry_time = input('Enter time: ').strip().lower()
+        current_time = datetime.now().time().strftime("%H:%M")
+        entry_time = input(f"Enter time [{current_time}]: ").strip().lower()
+        if not entry_time:
+            entry_time = current_time
+        
         entry_activities = input('Enter activities: ').strip().lower()
 
         tracker.add_entry(entry_time + ENTRY_DELIMITER + entry_activities)
