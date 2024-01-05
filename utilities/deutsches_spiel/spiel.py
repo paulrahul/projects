@@ -1,13 +1,12 @@
 from datetime import datetime
-import gspread
 import json
 import random
 
 from log import get_logger
+from translation_compiler import Compiler, DUMP_FILE_NAME, DEEPL_KEY_VAR
+import util
 
 logger = get_logger()
-
-DUMP_FILE_NAME =  "_dump.txt"
 
 class DeutschesSpiel:
     def __init__(self):
@@ -18,77 +17,47 @@ class DeutschesSpiel:
     def _init(self):
         print("Initialising game...")
         
-        values = None
-        try:
-            # First try to read from a local dump file. Re-read if file is not
-            # available or if the file is older than current date.        
-            with open(DUMP_FILE_NAME, 'r') as file:
-                current_date = datetime.today().date()
-                last_modified_timestamp = os.path.getmtime(DUMP_FILE_NAME)
-                last_modified_date = datetime.fromtimestamp(last_modified_timestamp).date()
-
-                if current_date != last_modified_date:
-                    logger.info(f"Dump file last mod date {last_modified_date} is not current.")
-                    raise FileNotFoundError
-                
-                logger.debug(f"Loading entries from current dump file.")
-                values = json.load(file)
+        if not util.file_exists(DUMP_FILE_NAME):
+            api_key = None
+            # Check if the environment variable exists
+            if DEEPL_KEY_VAR in os.environ:
+                # Access the value of the environment variable
+                api_key = os.environ[DEEPL_KEY_VAR]
+            else:
+                exit(f"The environment variable {DEEPL_KEY_VAR} is not set.")
+                          
+            compiler = Compiler(api_key)
+            compiler.compile()
             
-        except FileNotFoundError:
-            logger.info(f"Reading Google Spreadsheet file")
+            if not util.file_exists(DUMP_FILE_NAME):
+                exit("No dump file found and could not create one inline.")
             
-            # Authenticate with Google Sheets API
-            gc = gspread.oauth()
-
-            # Open the spreadsheet by title
-            spreadsheet = gc.open('Vokabeln und Phrasen')
-
-            # Select the worksheet by title
-            worksheet = spreadsheet.worksheet('Sheet1')
-
-            # Get all values from the worksheet
-            values = worksheet.get_all_values()[1:]
-            
-            with open(DUMP_FILE_NAME, 'w') as file:
-                logger.debug(f"Dumping back read contents to file.")
-                json.dump(values, file)
-
-        # Load only the entries having German words.
-        # TODO: Load reverse translations too (en -> de)
-        for row in values:
-            if row[0] is not None and row[0] != '':
-                self._rows.append((row[0], row[1], None))
+        with open(DUMP_FILE_NAME, 'r') as file:
+            logger.debug(f"Loading entries from current dump file.")
+            self._rows = json.load(file)
                 
         self._prepare_game()
                 
     def _prepare_game(self):
-        translation_fetched = False
-        # Fetch the translations of the words.
-        for i in range(len(self._rows)):
-            translation = self._rows[i][1]
-            if  translation is None or translation == '':
-                translation = translator.translate_from_deutsch(self._rows[i][0])
-                translation_fetched = True
-
-            self._rows[i] = (self._rows[i][0], translation, None)
-
-        # Dump back the translations so that we do not fetch translations every
-        # time.
-        if translation_fetched:
-            logger.debug(f"Dumping new translations to file")
-            with open(DUMP_FILE_NAME, 'w') as file:
-                json.dump(self._rows, file)
+        pass
 
     def play_game(self):
+        n = len(self._rows)
+        question_indices = set()
         # Pose a German word and fuzzy compare the user answer with the one in
         # the cache. Keep prompting till user says no.
         while True:
             # Get a word randomly.
-            entry = random.choice(self._rows)
-            user_answer = input(f'Was bedeutet {entry[0]}?: ').strip().lower()
-            similarity_score = find_similarity(user_answer, entry[1])
+            next_index = random.randint(0, n - 1)
+            if next_index in question_indices:
+                continue
+            question_indices.add(next_index)
+            entry = self._rows[next_index]
+            
+            user_answer = input(f'Was bedeutet {entry["word"]}?: ').strip().lower()
+            similarity_score = find_similarity(user_answer, entry["translation"])
             print(f"Deine Antwort ist {correctness_string(similarity_score)}, Ähnlichkeitwert {similarity_score}")
-            print(f"Echte Antwort: {entry[1]}\n")
+            print(f"Echte Antwort: {entry['translation']}\n")
             
             if not prompt('Weiter?'):
                 break

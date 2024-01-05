@@ -1,6 +1,8 @@
 import deepl
+import json
 
 from log import get_logger
+import util
 
 logger = get_logger()
 
@@ -9,7 +11,7 @@ class Translator:
         self.api_key = api_key
         
         self._translator = None
-        
+
         self._init(api_key)
         
     def _init(self, api_key):
@@ -33,8 +35,9 @@ class DeeplTranslator(Translator):
         return response.text
     
 class TranslatorFactory:
-    def get_translator(self, translator_source):
+    @classmethod
+    def get_translator(cls, translator_source, api_key):
         if translator_source.lower() == "deepl":
-            return DeeplTranslator()
+            return DeeplTranslator(api_key)
         else:
             raise ValueError(f"Invalid translator source type {translator_source}")

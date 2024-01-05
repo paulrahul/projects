@@ -11,7 +11,6 @@ logger = get_logger()
 
 SCRAPES_FOLDER_NAME = "scrapes"
 
-
 class Crawler:
     def __init__(self):
         curr_dir = os.path.dirname(os.path.abspath(__file__))     
@@ -30,7 +29,7 @@ class DWDSCrawler(Crawler):
     
     def crawl(self, word):
         file_name = self._dump_file_name(word)
-        if util._file_exists(file_name):
+        if util.file_exists(file_name):
             logger.debug(f"Scrape file for {word} already present.")
             return file_name
          

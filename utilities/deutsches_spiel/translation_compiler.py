@@ -6,30 +6,35 @@ import gspread
 
 from log import get_logger
 from scraper.crawler import CrawlerFactory
+from scraper.translator import TranslatorFactory
 import util
 
 DUMP_FILE_NAME =  "_dump.txt"
 SCRAPE_QUEUE_FILE_NAME = "_scrape_queue.txt"
+DEEPL_KEY_VAR = "DEEPL_KEY"
 
 logger = get_logger()
 
 class Compiler:
-    def __init__(self):
+    def __init__(self, translator_api_key):
         logger.info("Starting Compiler...")
         
         self._entries = None
         self._gs_entries = None
+        
+        self._crawler = CrawlerFactory.get_crawler("dwds")
+        self._translator = TranslatorFactory.get_translator("deepl", translator_api_key)
                       
     def compile(self):
         # Step 1. Read word list.
-        fetched = util._file_exists(DUMP_FILE_NAME)
+        fetched = util.file_exists(DUMP_FILE_NAME)
         if not fetched:
             fetched = self._fetch_glossary()
         if not fetched:
             logger.critical("Fetching glossary failed", exc_info=1) 
         
         # Step 2. Build scrape list.
-        if not util._file_exists(SCRAPE_QUEUE_FILE_NAME):
+        if not util.file_exists(SCRAPE_QUEUE_FILE_NAME):
             self._prepare_for_scrape()
         
         # Step 3. Scrape.
@@ -39,15 +44,13 @@ class Compiler:
         self._cleanup()
         
     def _cleanup(self):
-        _delete_file(DUMP_FILE_NAME)
         _delete_file(SCRAPE_QUEUE_FILE_NAME)
         
     def _scrape_de_to_en(self, word):
-        crawler = CrawlerFactory.get_crawler("dwds")
-        return crawler.crawl(word)
+        return self._crawler.crawl(word)
     
     def _translate_de_to_en(self, word):
-        return word
+        return self._translator.translate_from_deutsch(word)
         
     def _scrape_and_translate(self):
         try:
@@ -65,8 +68,23 @@ class Compiler:
                 
         self._combine_metadata(to_be_scraped_queue)
                 
-    def _combine_metadata(self, scraped_list):
-        pass
+    def _combine_metadata(self, scraped_entries):
+        dump_entries = []
+        for word, entry in scraped_entries.items():
+            if not entry['de_to_en']:
+                continue
+            
+            dump_entries.append({
+                "word": word,
+                "de_to_en": entry["de_to_en"],
+                "translation": entry["translation"],
+                "examples": None,
+                "metadata": None
+            })
+            
+        with open(DUMP_FILE_NAME, 'w') as file:
+            logger.debug(f"Dumping all metadata to file.")
+            json.dump(dump_entries, file)          
                     
     def _prepare_for_scrape(self):  
         # Schedule scraping for any word in GS not having a translation.
@@ -151,9 +169,7 @@ def _delete_file(file_name):
     except Exception as e:
         logger.error(f"An error occurred: {e}")
 
-if __name__ == "__main__":
-    DEEPL_KEY_VAR = "DEEPL_KEY"
-    
+if __name__ == "__main__":    
     api_key = None
     # Check if the environment variable exists
     if DEEPL_KEY_VAR in os.environ:
@@ -162,6 +178,6 @@ if __name__ == "__main__":
     else:
         exit(f"The environment variable {DEEPL_KEY_VAR} is not set.")
     
-    o = Compiler()
+    o = Compiler(api_key)
     o.compile()
     
