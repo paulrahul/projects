@@ -1,5 +1,11 @@
+import gevent
+from gevent import monkey
+monkey.patch_all()
+
+from functools import partial
 import json
 import os
+import threading
 import traceback
 
 import gspread
@@ -52,23 +58,57 @@ class Compiler:
     def _translate_de_to_en(self, word):
         return self._translator.translate_from_deutsch(word)
         
+    def _post_process_scrape(self, scrape_word, scrape_entry, event, source_greenlet):
+        k = source_greenlet.name
+        v = source_greenlet.value
+        scrape_entry[k] = v
+        logger.debug(f"Set {k} to {v} for {scrape_word}")
+        
+        if "translation" in scrape_entry and "file" in scrape_entry:
+            logger.debug(f"Both keys set for {scrape_word}")
+        
+            t = threading.Thread(
+                target=self._combine_scrape_data,
+                name=scrape_word,
+                args=(scrape_entry,))
+            t.start()
+            t.join()
+            
+            event.set()
+        
+    def _combine_scrape_data(self, scrape_entry):
+        pass
+    
     def _scrape_and_translate(self):
         try:
             with open(SCRAPE_QUEUE_FILE_NAME, 'r') as file:                
                 to_be_scraped_queue = json.load(file)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning(f"Could not read dump file {SCRAPE_QUEUE_FILE_NAME} due to: {e}")
+            logger.warning(f"No scrape queue found")
+            return
 
+        events = []
         for scrape_word, scrape_entry in to_be_scraped_queue.items():
             if scrape_entry['de_to_en']:
-                file_name = self._scrape_de_to_en(scrape_word)
-                scrape_entry['file'] = file_name
-                translation = self._translate_de_to_en(scrape_word)
-                scrape_entry['translation'] = translation
+                event = gevent.event.Event()
+                events.append(event)
                 
-        self._combine_metadata(to_be_scraped_queue)
+                greenlet1 = gevent.spawn(self._scrape_de_to_en, scrape_word)
+                greenlet1.name = "file"
+                greenlet2 = gevent.spawn(self._translate_de_to_en, scrape_word)
+                greenlet2.name = "translation"
+
+                greenlet1.link(partial(
+                    self._post_process_scrape, 
+                    scrape_word, scrape_entry, event))
+                greenlet2.link(partial(
+                    self._post_process_scrape,
+                    scrape_word, scrape_entry, event))
+            
+        gevent.wait(events)
+        self._dump_metadata(to_be_scraped_queue)
                 
-    def _combine_metadata(self, scraped_entries):
+    def _dump_metadata(self, scraped_entries):
         dump_entries = []
         for word, entry in scraped_entries.items():
             if not entry['de_to_en']:
@@ -87,6 +127,9 @@ class Compiler:
             json.dump(dump_entries, file)          
                     
     def _prepare_for_scrape(self):  
+        if self._gs_entries is None or len(self._gs_entries) == 0:
+            return
+        
         # Schedule scraping for any word in GS not having a translation.
         to_be_scraped_queue = {}
         empty_dump_file = self._entries is None or len(self._entries) == 0
