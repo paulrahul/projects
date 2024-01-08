@@ -1,4 +1,4 @@
-from datetime import datetime
+from colorama import Back, Fore, Style
 import json
 import random
 
@@ -15,7 +15,7 @@ class DeutschesSpiel:
         self._init()
 
     def _init(self):
-        print("Initialising game...")
+        print("Initialising game...\n\n")
         
         if not util.file_exists(DUMP_FILE_NAME):
             api_key = None
@@ -54,14 +54,16 @@ class DeutschesSpiel:
             question_indices.add(next_index)
             entry = self._rows[next_index]
             
-            user_answer = input(f'Was bedeutet {entry["word"]}?: ').strip().lower()
+            user_answer = input(
+                Fore.CYAN + f'Was bedeutet {entry["word"]}?: ' + Style.RESET_ALL).strip().lower()
             similarity_score = find_similarity(user_answer, entry["translation"])
             print(f"Deine Antwort ist {correctness_string(similarity_score)}, Ähnlichkeitwert {similarity_score}")
-            print(f"Echte Antwort: {entry['translation']}\n\nExamples:")
+            print(Fore.GREEN + f"Echte Antwort: {entry['translation']}" + Style.RESET_ALL + 
+                  Back.GREEN + Style.BRIGHT + "\n\nExamples:" + Style.RESET_ALL)
             print("\n".join(entry["examples"][:5]))
             
             if "genus" in entry['metadata']:
-                print(f"\nGenus: {entry['metadata']['genus']}")
+                print(Back.GREEN + Style.BRIGHT + f"\nGenus:" + Style.RESET_ALL + " " + str(entry['metadata']['genus']))
             
             if not prompt('\nWeiter?'):
                 break
@@ -70,11 +72,11 @@ from fuzzywuzzy import fuzz
 
 def correctness_string(score):
     if score >= 90:
-        return "richtig!"
+        return "richtig"
     elif score < 90 and score >= 70:
-        return "fast richtig."
+        return "fast richtig"
     else:
-        return "nicht ganz richtig."
+        return "nicht ganz richtig"
 
 def find_similarity(str1, str2):
     # Convert strings to lowercase for case-insensitive comparison
