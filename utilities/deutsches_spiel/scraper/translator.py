@@ -2,7 +2,6 @@ import deepl
 import json
 
 from log import get_logger
-import util
 
 logger = get_logger()
 

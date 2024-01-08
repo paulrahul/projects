@@ -57,9 +57,13 @@ class DeutschesSpiel:
             user_answer = input(f'Was bedeutet {entry["word"]}?: ').strip().lower()
             similarity_score = find_similarity(user_answer, entry["translation"])
             print(f"Deine Antwort ist {correctness_string(similarity_score)}, Ähnlichkeitwert {similarity_score}")
-            print(f"Echte Antwort: {entry['translation']}\n")
+            print(f"Echte Antwort: {entry['translation']}\n\nExamples:")
+            print("\n".join(entry["examples"][:5]))
             
-            if not prompt('Weiter?'):
+            if "genus" in entry['metadata']:
+                print(f"\nGenus: {entry['metadata']['genus']}")
+            
+            if not prompt('\nWeiter?'):
                 break
             
 from fuzzywuzzy import fuzz

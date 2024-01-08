@@ -5,6 +5,7 @@ monkey.patch_all()
 from functools import partial
 import json
 import os
+import queue
 import threading
 import traceback
 
@@ -12,11 +13,14 @@ import gspread
 
 from log import get_logger
 from scraper.crawler import CrawlerFactory
+from scraper.parser import ParserFactory
 from scraper.translator import TranslatorFactory
 import util
 
 DUMP_FILE_NAME =  "_dump.txt"
 SCRAPE_QUEUE_FILE_NAME = "_scrape_queue.txt"
+INCORRECT_WORDS_FILE_NAME = "_to_be_fixed.txt"
+
 DEEPL_KEY_VAR = "DEEPL_KEY"
 
 logger = get_logger()
@@ -30,6 +34,9 @@ class Compiler:
         
         self._crawler = CrawlerFactory.get_crawler("dwds")
         self._translator = TranslatorFactory.get_translator("deepl", translator_api_key)
+        self._parser = ParserFactory.get_parser("dwds")
+        
+        self._incorrect_words = queue.Queue()
                       
     def compile(self):
         # Step 1. Read word list.
@@ -48,7 +55,7 @@ class Compiler:
         
         # Step 5.
         self._cleanup()
-        
+                
     def _cleanup(self):
         _delete_file(SCRAPE_QUEUE_FILE_NAME)
         
@@ -70,14 +77,34 @@ class Compiler:
             t = threading.Thread(
                 target=self._combine_scrape_data,
                 name=scrape_word,
-                args=(scrape_entry,))
+                args=(scrape_word, scrape_entry,))
             t.start()
             t.join()
             
             event.set()
         
-    def _combine_scrape_data(self, scrape_entry):
-        pass
+    def _combine_scrape_data(self, scrape_word, scrape_entry):
+        scrape_entry["examples"] = []
+        scrape_entry["metadata"] = []
+
+        if scrape_entry['file'] is None:
+            self._incorrect_words.put(scrape_word)
+            logger.warning(f"No scrape file for {scrape_word} found")
+            return
+        
+        file_name = scrape_entry['file']
+        try:
+            with open(file_name, 'r') as file:
+                scrape_contents = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.error(f"File {file_name} not found for parsing.")
+            return 
+
+        examples = self._parser.parse_examples(scrape_contents)
+        scrape_entry["examples"] = examples
+        
+        genus = self._parser.parse_genus(examples, scrape_word)
+        scrape_entry["metadata"] = {"genus": genus}
     
     def _scrape_and_translate(self):
         try:
@@ -118,13 +145,22 @@ class Compiler:
                 "word": word,
                 "de_to_en": entry["de_to_en"],
                 "translation": entry["translation"],
-                "examples": None,
-                "metadata": None
+                "examples": entry["examples"],
+                "metadata": entry["metadata"]
             })
             
         with open(DUMP_FILE_NAME, 'w') as file:
             logger.debug(f"Dumping all metadata to file.")
-            json.dump(dump_entries, file)          
+            json.dump(dump_entries, file)
+            
+        if not self._incorrect_words.empty():
+            words = []
+            while not self._incorrect_words.empty():
+                words.append(self._incorrect_words.get())
+            
+            with open(INCORRECT_WORDS_FILE_NAME, 'w') as file:
+                logger.debug(f"Writing incorrect words to file.")
+                json.dump(words, file)
                     
     def _prepare_for_scrape(self):  
         if self._gs_entries is None or len(self._gs_entries) == 0:
@@ -223,4 +259,9 @@ if __name__ == "__main__":
     
     o = Compiler(api_key)
     o.compile()
+
+    # from scraper.parser import DWDSParser    
+
+    # o = DWDSParser()
+    # o.parse_genus(["alle in die Buss kommen nach DER Wahrnehmung allgemeingesellschaftlicher Interessen"], "Wahrnehmung") 
     
