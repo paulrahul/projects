@@ -38,11 +38,9 @@ class Compiler:
         
         self._incorrect_words = queue.Queue()
                       
-    def compile(self):
+    def compile(self, reload=False):
         # Step 1. Read word list.
-        fetched = util.file_exists(DUMP_FILE_NAME)
-        if not fetched:
-            fetched = self._fetch_glossary()
+        fetched = self._fetch_glossary(fetch_from_google_sheet=reload)
         if not fetched:
             logger.critical("Fetching glossary failed", exc_info=1) 
         
@@ -164,6 +162,7 @@ class Compiler:
                     
     def _prepare_for_scrape(self):  
         if self._gs_entries is None or len(self._gs_entries) == 0:
+            logger.debug("No new entries from Google Spreadsheet")
             return
         
         # Schedule scraping for any word in GS not having a translation.
@@ -193,21 +192,20 @@ class Compiler:
         # 2. If dump file not found or if fetch_from_google_sheet, then fetch
         #    Google spreadsheet contents.
         
-        dump_file_found = False
+        if fetch_from_google_sheet:
+            return self._fetch_from_gsheet()    
+        
         try:
             # First try to read from a local dump file. Re-read if file is not
             # available or if the file is older than current date.        
             with open(DUMP_FILE_NAME, 'r') as file:                
                 logger.debug(f"Loading entries from current dump file.")
                 self._entries = json.load(file)
-                dump_file_found = True
+                return True
         except (FileNotFoundError, json.JSONDecodeError) as e:
             logger.warning(f"Could not read dump file {DUMP_FILE_NAME} due to: {e}")
-            
-        if not dump_file_found or fetch_from_google_sheet:
-            return self._fetch_from_gsheet()
         
-        return True
+        return False
         
     def _fetch_from_gsheet(self):
         try:
