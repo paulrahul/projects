@@ -57,8 +57,11 @@ class DeutschesSpiel:
             
             user_answer = input(
                 Fore.CYAN + f'Was bedeutet {entry["word"]}?: ' + Style.RESET_ALL).strip().lower()
-            similarity_score = find_similarity(user_answer, entry["translation"], self._use_semantic)
-            print(f"Deine Antwort ist {correctness_string(similarity_score, self._use_semantic)}, Ähnlichkeitwert {similarity_score}")
+            if len(user_answer) > 0:
+                similarity_score = find_similarity(user_answer, entry["translation"], self._use_semantic)
+                print(
+                    f"Deine Antwort ist {correctness_string(similarity_score, self._use_semantic)}, " +
+                    f"Ähnlichkeitwert {normalized_score(similarity_score, self._use_semantic)}")
             print(Fore.GREEN + f"Echte Antwort: {entry['translation']}" + Style.RESET_ALL + 
                   Back.GREEN + Style.BRIGHT + "\n\nExamples:" + Style.RESET_ALL)
             print("\n".join(entry["examples"][:5]))
@@ -71,9 +74,14 @@ class DeutschesSpiel:
             
 from fuzzywuzzy import fuzz
 
-def correctness_string(score, semantic=False):
+def normalized_score(score, semantic=False):
     if semantic:
-        score *= 100
+        return score*100
+    else:
+        return score
+
+def correctness_string(score, semantic=False):
+    score = normalized_score(score, semantic)
     if score >= 90:
         return "richtig"
     elif score < 90 and score >= 70:

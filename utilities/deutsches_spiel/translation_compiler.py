@@ -29,6 +29,8 @@ class Compiler:
     def __init__(self, translator_api_key):
         logger.info("Starting Compiler...")
         
+        self._worksheet = None
+        
         self._entries = None
         self._gs_entries = None
         
@@ -45,7 +47,7 @@ class Compiler:
             logger.critical("Fetching glossary failed", exc_info=1) 
         
         # Step 2. Build scrape list.
-        if not util.file_exists(SCRAPE_QUEUE_FILE_NAME):
+        if reload or not util.file_exists(SCRAPE_QUEUE_FILE_NAME):
             self._prepare_for_scrape()
         
         # Step 3. Scrape.
@@ -132,6 +134,7 @@ class Compiler:
             
         gevent.wait(events)
         self._dump_metadata(to_be_scraped_queue)
+        self._write_translations_to_gs(to_be_scraped_queue)
                 
     def _dump_metadata(self, scraped_entries):
         dump_entries = []
@@ -218,16 +221,12 @@ class Compiler:
             spreadsheet = gc.open('Vokabeln und Phrasen')
 
             # Select the worksheet by title
-            worksheet = spreadsheet.worksheet('Sheet1')
+            self._worksheet = spreadsheet.worksheet('Sheet1')
 
             # Get all values from the worksheet
-            self._gs_entries = worksheet.get_all_values()[1:]
+            self._gs_entries = self._worksheet.get_all_values()[1:]
             
             logger.debug(f"Obtained values from GS: {self._gs_entries}")
-            
-            # with open(DUMP_FILE_NAME, 'w') as file:
-            #     logger.debug(f"Dumping back read contents to file.")
-            #     json.dump(self._entries, file)
                 
             return True
 
@@ -236,6 +235,35 @@ class Compiler:
             logger.error(f"Fetching Google sheet failed")
             traceback.print_exc()
             return False
+        
+    def _write_translations_to_gs(self, scraped_entries):
+        if self._worksheet is None:
+            logger.critical("Worksheet is not set, this is unexpected.")
+            
+        column_to_update = 3  # Bedeutung column
+
+        row_index = 2
+        batch_updates = []
+        for row in self._gs_entries:            
+            if row[0] is not None and row[0] != '':
+                word = row[0]
+                if word not in scraped_entries:
+                    logger.error(f"No translation found for {word}")
+
+                entry = scraped_entries[word]
+                cell_value = entry["translation"]                
+            else:
+                cell_value = ''
+
+            batch_updates.append({
+                'range': gspread.utils.rowcol_to_a1(row_index, column_to_update),
+                'values': [[cell_value]],
+            })
+            row_index += 1            
+  
+        logger.debug(f"Batch updates to be issued: {batch_updates}")
+        self._worksheet.batch_update(batch_updates)
+        logger.debug("Batch updates completed.")
     
 def _delete_file(file_name):
     try:
@@ -256,7 +284,7 @@ if __name__ == "__main__":
         exit(f"The environment variable {DEEPL_KEY_VAR} is not set.")
     
     o = Compiler(api_key)
-    o.compile()
+    o.compile(reload=True)
 
     # from scraper.parser import DWDSParser    
 
