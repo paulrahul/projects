@@ -37,8 +37,6 @@ class Compiler:
         self._crawler = CrawlerFactory.get_crawler("dwds")
         self._translator = TranslatorFactory.get_translator("deepl", translator_api_key)
         self._parser = ParserFactory.get_parser("dwds")
-        
-        self._incorrect_words = queue.Queue()
                       
     def compile(self, reload=False):
         # Step 1. Read word list.
@@ -87,8 +85,9 @@ class Compiler:
         scrape_entry["examples"] = []
         scrape_entry["metadata"] = []
 
+        scrape_entry["incorrect"] = False
         if scrape_entry['file'] is None:
-            self._incorrect_words.put(scrape_word)
+            scrape_entry["incorrect"] = True
             logger.warning(f"No scrape file for {scrape_word} found")
             return
         
@@ -138,7 +137,12 @@ class Compiler:
                 
     def _dump_metadata(self, scraped_entries):
         dump_entries = []
+        incorrect_words = []
         for word, entry in scraped_entries.items():
+            if entry.get("incorrect", False):
+                incorrect_words.append(word)
+                continue
+            
             if not entry['de_to_en']:
                 continue
             
@@ -154,14 +158,10 @@ class Compiler:
             logger.debug(f"Dumping all metadata to file.")
             json.dump(dump_entries, file)
             
-        if not self._incorrect_words.empty():
-            words = []
-            while not self._incorrect_words.empty():
-                words.append(self._incorrect_words.get())
-            
+        if not len(incorrect_words) > 0:            
             with open(INCORRECT_WORDS_FILE_NAME, 'w') as file:
                 logger.debug(f"Writing incorrect words to file.")
-                json.dump(words, file)
+                json.dump(incorrect_words, file)
                     
     def _prepare_for_scrape(self):  
         if self._gs_entries is None or len(self._gs_entries) == 0:
@@ -172,14 +172,22 @@ class Compiler:
         to_be_scraped_queue = {}
         empty_dump_file = self._entries is None or len(self._entries) == 0
         for row in self._gs_entries:
+            word1 = row[0] if len(row) > 0 else None
+            word2 = row[1] if len(row) > 1 else None
+            
             word = None
             de_to_en = False
             
-            if row[0] is not None and row[0] != '':
-                word = row[0]
+            if word1 is not None and word2 is not None:
+                logger.critical(f"Found an incorrect entry with both words set: " +
+                                f"{row[0]}, {row[1]}")
+                exit(1)
+
+            if word1 is not None and word1 != '':
+                word = word1
                 de_to_en = True
             else:
-                word = row[1]
+                word = word2
             
             if empty_dump_file or word not in self._entries:
                 to_be_scraped_queue[word] = {'de_to_en': de_to_en}
@@ -196,7 +204,7 @@ class Compiler:
         #    Google spreadsheet contents.
         
         if fetch_from_google_sheet:
-            return self._fetch_from_gsheet()    
+            return self._fetch_from_gsheet() 
         
         try:
             # First try to read from a local dump file. Re-read if file is not

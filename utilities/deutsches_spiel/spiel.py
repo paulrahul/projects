@@ -1,5 +1,6 @@
 from colorama import Back, Fore, Style
 import json
+from numpy import polyfit
 import random
 
 from log import get_logger, update_logging_level
@@ -8,10 +9,15 @@ import util
 
 logger = get_logger()
 
+SCORE_FILE_NAME = "_scores.txt"
+
 class DeutschesSpiel:
     def __init__(self, use_semantic=False):
         self._use_semantic = use_semantic
-        self._rows = []
+        self._rows = {}  #{<word>: {"de_to_en":<>, "translation":<>,...}}
+        self._basic_scores = {}  #{<word>:[90.0, 45.0,...]}
+        
+        self._sorted_words = []
 
         self._init()
 
@@ -36,32 +42,83 @@ class DeutschesSpiel:
         with open(DUMP_FILE_NAME, 'r') as file:
             logger.debug(f"Loading entries from current dump file.")
             self._rows = json.load(file)
+            
+        if util.file_exists(SCORE_FILE_NAME):
+            with open(SCORE_FILE_NAME, 'r') as file:
+                logger.debug(f"Loading entries from scores dump file.")
+                self._basic_scores = json.load(file)
+        else:
+            logger.debug("No scores file found.")
                 
         self._prepare_game()
                 
     def _prepare_game(self):
-        pass
+        # Calculate the slope of the trend line for each word's scores
+        word_slopes = {}
+        for word, scores in self._basic_scores.items():
+            x = list(range(1, len(scores) + 1))  # Assuming scores are given in chronological order
+            slope, _ = polyfit(x, scores, 1)
+            word_slopes[word] = slope
 
-    def play_game(self):
-        n = len(self._rows)
+        # Sort the words based on their slopes in descending order
+        self._sorted_words = sorted(word_slopes, key=word_slopes.get)
+
+        # Print the sorted words along with their slopes
+        for word in self._sorted_words:
+            logger.debug(f'{word}: {word_slopes[word]}')
+
+    def _get_next_spiel_word(self):
+        n = len(self._sorted_words)
+        index = 0
+        used_words = set()
+        
+        while index < n:
+            used_words.add(self._sorted_words[index])
+            yield self._sorted_words[index]
+            index += 1
+        
         question_indices = set()
+        while True: 
+            idx = random.randint(0, n - 1)
+            entry = self._rows[idx]
+            word = entry["word"]
+
+            if word in used_words or idx in question_indices:
+                continue
+
+            question_indices.add(idx)
+            yield word
+        
+    def play_game(self):
+        spiel_dict = {}
+        for entry in self._rows:
+            word = entry["word"]
+            spiel_dict[word] = entry
+        
+        next_spiel = self._get_next_spiel_word()
         # Pose a German word and fuzzy compare the user answer with the one in
         # the cache. Keep prompting till user says no.
         while True:
             # Get a word randomly.
-            next_index = random.randint(0, n - 1)
-            if next_index in question_indices:
-                continue
-            question_indices.add(next_index)
-            entry = self._rows[next_index]
+            word = next(next_spiel)
+            entry = spiel_dict[word]
             
             user_answer = input(
-                Fore.CYAN + f'Was bedeutet {entry["word"]}?: ' + Style.RESET_ALL).strip().lower()
+                Fore.CYAN + f'Was bedeutet {word}?: ' + Style.RESET_ALL).strip().lower()
             if len(user_answer) > 0:
                 similarity_score = find_similarity(user_answer, entry["translation"], self._use_semantic)
+                score = normalized_score(similarity_score, self._use_semantic)
                 print(
-                    f"Deine Antwort ist {correctness_string(similarity_score, self._use_semantic)}, " +
-                    f"Ähnlichkeitwert {normalized_score(similarity_score, self._use_semantic)}")
+                    f"Deine Antwort ist {correctness_string(score)}, " +
+                    f"Ähnlichkeitwert {score}")
+            else:
+                score = 0
+                
+            if word in self._basic_scores:
+                self._basic_scores[word].append(score)
+            else:
+                self._basic_scores[word] = [score]
+                
             print(Fore.GREEN + f"Echte Antwort: {entry['translation']}" + Style.RESET_ALL + 
                   Back.GREEN + Style.BRIGHT + "\n\nExamples:" + Style.RESET_ALL)
             print("\n".join(entry["examples"][:5]))
@@ -70,6 +127,11 @@ class DeutschesSpiel:
                 print(Back.GREEN + Style.BRIGHT + f"\nGenus:" + Style.RESET_ALL + " " + str(entry['metadata']['genus']))
             
             if not prompt('\nWeiter?'):
+                with open(SCORE_FILE_NAME, 'w') as file:
+                    logger.debug(f"Dumping all scores to file.")
+                    json.dump(self._basic_scores, file)
+                    
+                print(f"\nThank You!!\n")
                 break
             
 from fuzzywuzzy import fuzz
@@ -80,8 +142,7 @@ def normalized_score(score, semantic=False):
     else:
         return score
 
-def correctness_string(score, semantic=False):
-    score = normalized_score(score, semantic)
+def correctness_string(score):
     if score >= 90:
         return "richtig"
     elif score < 90 and score >= 70:
