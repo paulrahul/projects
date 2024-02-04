@@ -1,5 +1,6 @@
 from colorama import Back, Fore, Style
 import json
+import math
 from numpy import polyfit
 import random
 
@@ -50,7 +51,7 @@ class DeutschesSpiel:
         else:
             logger.debug("No scores file found.")
                 
-        self._prepare_game()
+        self._prepare_game()            
                 
     def _prepare_game(self):
         # Calculate the slope of the trend line for each word's scores
@@ -68,26 +69,43 @@ class DeutschesSpiel:
             logger.debug(f'{word}: {word_slopes[word]}')
 
     def _get_next_spiel_word(self):
-        n = len(self._sorted_words)
+        n = len(self._rows)
+        sn = len(self._sorted_words)
+        ideal_interval = math.ceil(sn / n - sn) if sn > n - sn else 1
+        
+        interval = random.randint(1, ideal_interval)
+        
         index = 0
+        asked = 0
         used_words = set()
-        
-        while index < n:
-            used_words.add(self._sorted_words[index])
-            yield self._sorted_words[index]
-            index += 1
-        
         question_indices = set()
-        while True: 
-            idx = random.randint(0, n - 1)
-            entry = self._rows[idx]
-            word = entry["word"]
+        
+        while True:        
+            if index >= n or asked >= interval:
+                if asked >= interval:
+                    asked = 0
+                    interval = random.randint(1, ideal_interval)
 
-            if word in used_words or idx in question_indices:
-                continue
+                idx = random.randint(0, n - 1)
+                entry = self._rows[idx]
+                word = entry["word"]
 
-            question_indices.add(idx)
-            yield word
+                if word in used_words or idx in question_indices:
+                    continue
+
+                question_indices.add(idx)
+                yield word
+            else:
+                used_words.add(self._sorted_words[index])
+                yield self._sorted_words[index]
+                index += 1
+                asked += 1
+
+    def show_scores(self):
+        print("SCORES")
+        print("======")
+        for word in self._sorted_words:
+            print(f"{word}: {self._basic_scores[word]}")
         
     def play_game(self):
         spiel_dict = {}
@@ -224,11 +242,9 @@ if __name__ == "__main__":
                         
         compiler = Compiler(api_key)
         compiler.compile(reload=True)
-        
+
+    spiel = DeutschesSpiel(use_semantic)        
     if prompt('Möchtest du ein Spiel spielen?'):
-        spiel = DeutschesSpiel(use_semantic)
-        
         spiel.play_game()
-    else:
-        user_input = prompt('Möchtest du deine Notizen überarbeiten?')
-        pass
+    elif prompt('Möchtest du deine Notizen überarbeiten?'):
+        spiel.show_scores()
