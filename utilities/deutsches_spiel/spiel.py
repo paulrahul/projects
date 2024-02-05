@@ -137,9 +137,9 @@ class DeutschesSpiel:
             else:
                 self._basic_scores[word] = [score]
                 
-            print(Fore.GREEN + f"Echte Antwort: {entry['translation']}" + Style.RESET_ALL + 
+            print(Fore.GREEN + f"\nEchte Antwort: {entry['translation'].upper()}" + Style.RESET_ALL + 
                   Back.GREEN + Style.BRIGHT + "\n\nExamples:" + Style.RESET_ALL)
-            print("\n".join(entry["examples"][:5]))
+            _print_examples(entry["examples"])
             
             if "genus" in entry['metadata']:
                 print(Back.GREEN + Style.BRIGHT + f"\nGenus:" + Style.RESET_ALL + " " + str(entry['metadata']['genus']))
@@ -151,6 +151,13 @@ class DeutschesSpiel:
                     
                 print(f"\nThank You!!\n")
                 break
+
+def _print_examples(examples):
+    n = len(examples)
+    n = 5 if n > 5 else n
+    
+    for i in range(0, n):
+        print(f"{i + 1}. {examples[i]}")
             
 from fuzzywuzzy import fuzz
 

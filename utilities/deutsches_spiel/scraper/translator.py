@@ -33,6 +33,15 @@ class DeeplTranslator(Translator):
 
         return response.text
     
+    def translate_from_englisch(self, english_text):
+        # Translate the English text to German
+        response = self._translator.translate_text(
+            source_lang="en", target_lang="de", text=english_text)
+        
+        logger.debug(f"Fetched translation {response.text} for {english_text}")
+
+        return response.text
+    
 class TranslatorFactory:
     @classmethod
     def get_translator(cls, translator_source, api_key):

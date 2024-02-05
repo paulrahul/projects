@@ -62,6 +62,9 @@ class Compiler:
     
     def _translate_de_to_en(self, word):
         return self._translator.translate_from_deutsch(word)
+    
+    def _translate_en_to_de(self, word):
+        return self._translator.translate_from_englisch(word)
         
     def _post_process_scrape(self, scrape_word, scrape_entry, event, source_greenlet):
         k = source_greenlet.name
@@ -130,7 +133,21 @@ class Compiler:
                 greenlet2.link(partial(
                     self._post_process_scrape,
                     scrape_word, scrape_entry, event))
-            
+            else:  # en to de
+                # First get the German translation, then do the usual scraping
+                # as is done for German words.                
+                translation = self._translate_en_to_de(scrape_word)
+                scrape_entry["translation"] = translation
+
+                event = gevent.event.Event()
+                events.append(event)
+                greenlet = gevent.spawn(self._scrape_de_to_en, translation)
+                greenlet.name = "file"
+                greenlet.link(partial(
+                    self._post_process_scrape, 
+                    translation, scrape_entry, event))
+                
+                          
         gevent.wait(events)
         self._dump_metadata(to_be_scraped_queue)
         self._write_translations_to_gs(to_be_scraped_queue)
@@ -143,8 +160,8 @@ class Compiler:
                 incorrect_words.append(word)
                 continue
             
-            if not entry['de_to_en']:
-                continue
+            # if not entry['de_to_en']:
+            #     continue
             
             dump_entries.append({
                 "word": word,
@@ -172,15 +189,15 @@ class Compiler:
         to_be_scraped_queue = {}
         empty_dump_file = self._entries is None or len(self._entries) == 0
         for row in self._gs_entries:
-            word1 = row[0] if len(row) > 0 else None
-            word2 = row[1] if len(row) > 1 else None
+            word1 = row[0] if len(row) > 0 and row[0].strip() != '' else None
+            word2 = row[1] if len(row) > 1 and row[1].strip() != ''  else None
             
             word = None
             de_to_en = False
             
             if word1 is not None and word2 is not None:
                 logger.critical(f"Found an incorrect entry with both words set: " +
-                                f"{row[0]}, {row[1]}")
+                                f"{word1}, {word2}")
                 exit(1)
 
             if word1 is not None and word1 != '':
@@ -204,7 +221,7 @@ class Compiler:
         #    Google spreadsheet contents.
         
         if fetch_from_google_sheet:
-            return self._fetch_from_gsheet() 
+            return self._fetch_from_gsheet()
         
         try:
             # First try to read from a local dump file. Re-read if file is not
@@ -247,21 +264,23 @@ class Compiler:
     def _write_translations_to_gs(self, scraped_entries):
         if self._worksheet is None:
             logger.critical("Worksheet is not set, this is unexpected.")
-            
-        column_to_update = 3  # Bedeutung column
 
         row_index = 2
         batch_updates = []
         for row in self._gs_entries:            
             if row[0] is not None and row[0] != '':
                 word = row[0]
-                if word not in scraped_entries:
-                    logger.error(f"No translation found for {word}")
+                column_to_update = 3  # Bedeutung column
+            elif row[1] is not None and row[1] != '':
+                word = row[1]
+                column_to_update = 1  # Deutsch column
+                
+            if word not in scraped_entries:
+                logger.error(f"No translation found for {word}")
+                continue
 
-                entry = scraped_entries[word]
-                cell_value = entry["translation"]                
-            else:
-                cell_value = ''
+            entry = scraped_entries[word]
+            cell_value = entry["translation"]
 
             batch_updates.append({
                 'range': gspread.utils.rowcol_to_a1(row_index, column_to_update),
