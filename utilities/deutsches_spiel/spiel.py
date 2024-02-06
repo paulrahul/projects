@@ -152,12 +152,16 @@ class DeutschesSpiel:
                 print(f"\nThank You!!\n")
                 break
 
+WIDTH = 5
+
 def _print_examples(examples):
     n = len(examples)
     n = 5 if n > 5 else n
     
     for i in range(0, n):
-        print(f"{i + 1}. {examples[i]}")
+        print(f"{i+1}.{'':<{WIDTH-2}}{examples[i][0]}")
+        print(f"{'':<{WIDTH}}{examples[i][1]}")
+        print()
             
 from fuzzywuzzy import fuzz
 

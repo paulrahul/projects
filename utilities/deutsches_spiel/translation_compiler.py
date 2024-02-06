@@ -103,7 +103,24 @@ class Compiler:
             return 
 
         examples = self._parser.parse_examples(scrape_contents)
-        scrape_entry["examples"] = examples
+        
+        # Invoke greenlets to fetch the translations of the examples.
+        greenlets = []
+        idx = 0
+        for eg in examples:
+            g = gevent.spawn(self._translate_de_to_en, eg)
+            g.name = str(idx)
+            greenlets.append(g)
+            idx += 1
+            
+        greenlets = gevent.joinall(greenlets, timeout=10)
+        
+        compiled_examples = []
+        for g in greenlets:
+            idx = int(g.name)
+            compiled_examples.append((examples[idx], g.value))
+            
+        scrape_entry["examples"] = compiled_examples
         
         genus = self._parser.parse_genus(examples, scrape_word)
         scrape_entry["metadata"] = {"genus": genus}
@@ -265,15 +282,15 @@ class Compiler:
         if self._worksheet is None:
             logger.critical("Worksheet is not set, this is unexpected.")
 
+        column_to_update = 3  # Bedeutung column
+
         row_index = 2
         batch_updates = []
         for row in self._gs_entries:            
             if row[0] is not None and row[0] != '':
                 word = row[0]
-                column_to_update = 3  # Bedeutung column
             elif row[1] is not None and row[1] != '':
                 word = row[1]
-                column_to_update = 1  # Deutsch column
                 
             if word not in scraped_entries:
                 logger.error(f"No translation found for {word}")
