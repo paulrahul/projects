@@ -206,6 +206,10 @@ class Compiler:
         to_be_scraped_queue = {}
         empty_dump_file = self._entries is None or len(self._entries) == 0
         for row in self._gs_entries:
+            if len(row) >= 3 and row[2].strip() != '':
+                # Already has a Bedeutung filled in.
+                continue
+            
             word1 = row[0] if len(row) > 0 and row[0].strip() != '' else None
             word2 = row[1] if len(row) > 1 and row[1].strip() != ''  else None
             

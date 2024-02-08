@@ -2,6 +2,7 @@ from colorama import Back, Fore, Style
 import json
 import math
 from numpy import polyfit
+import os
 import random
 
 from log import get_logger, update_logging_level
@@ -81,7 +82,7 @@ class DeutschesSpiel:
         question_indices = set()
         
         while True:        
-            if index >= n or asked >= interval:
+            if index >= sn or asked >= interval:
                 if asked >= interval:
                     asked = 0
                     interval = random.randint(1, ideal_interval)
@@ -106,20 +107,29 @@ class DeutschesSpiel:
         print("======")
         for word in self._sorted_words:
             print(f"{word}: {self._basic_scores[word]}")
-        
-    def play_game(self):
+            
+    def get_next_entry(self):
         spiel_dict = {}
         for entry in self._rows:
             word = entry["word"]
             spiel_dict[word] = entry
         
         next_spiel = self._get_next_spiel_word()
-        # Pose a German word and fuzzy compare the user answer with the one in
-        # the cache. Keep prompting till user says no.
+
         while True:
-            # Get a word randomly.
             word = next(next_spiel)
-            entry = spiel_dict[word]
+            yield spiel_dict[word] 
+        
+    def exit_game(self):
+        with open(SCORE_FILE_NAME, 'w') as file:
+            logger.debug(f"Dumping all scores to file.")
+            json.dump(self._basic_scores, file)    
+        
+    def play_game(self):
+        next_entry = self.get_next_entry()
+        while True:
+            entry = next(next_entry)
+            word = entry["word"]
             
             user_answer = input(
                 Fore.CYAN + f'Was bedeutet {word}?: ' + Style.RESET_ALL).strip().lower()
@@ -144,12 +154,9 @@ class DeutschesSpiel:
             if "genus" in entry['metadata']:
                 print(Back.GREEN + Style.BRIGHT + f"\nGenus:" + Style.RESET_ALL + " " + str(entry['metadata']['genus']))
             
-            if not prompt('\nWeiter?'):
-                with open(SCORE_FILE_NAME, 'w') as file:
-                    logger.debug(f"Dumping all scores to file.")
-                    json.dump(self._basic_scores, file)
-                    
+            if not prompt('\nWeiter?'):                    
                 print(f"\nThank You!!\n")
+                self.exit_game()
                 break
 
 WIDTH = 5
@@ -254,7 +261,7 @@ if __name__ == "__main__":
         compiler = Compiler(api_key)
         compiler.compile(reload=True)
 
-    spiel = DeutschesSpiel(use_semantic)        
+    spiel = DeutschesSpiel(use_semantic)
     if prompt('Möchtest du ein Spiel spielen?'):
         spiel.play_game()
     elif prompt('Möchtest du deine Notizen überarbeiten?'):
