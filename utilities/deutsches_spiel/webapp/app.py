@@ -1,14 +1,19 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-from flask import Flask, g, render_template, request, url_for, session
+from flask import Flask, session, render_template, request, url_for, jsonify
 from werkzeug.utils import redirect
 
 from deutsches_spiel.spiel import DeutschesSpiel
 from deutsches_spiel.translation_compiler import Compiler
 
+spiel = DeutschesSpiel(use_semantic=False)
+next_entry = spiel.get_next_entry()
+
 def create_app():
     app = Flask(__name__)
+    app.secret_key = 'your_secret_key_here'
+
     app.config.from_mapping(
         DEEPL_KEY = os.environ.get("DEEPL_KEY")
     )
@@ -31,30 +36,29 @@ def create_app():
     
     @app.route("/next_question")
     def next_question():
-        next_entry = get_next_entry()
+        next_question = next(next_entry)
         return render_template(
             "question.html",
-            entry=next(next_entry))
+            entry=next_question)
+        
+    @app.route("/answer_score")
+    def answer_score():
+        user_answer = request.args.get('answer')
+        translation = request.args.get('translation')
+        (score_string, score) = get_spiel().get_answer_score(
+            user_answer, translation)
+        data = {'score_string': score_string, 'score': score}
+        return jsonify(data), 200
 
     @app.route("/exit")
     def exit():
         get_spiel().exit_game()
         return redirect(url_for('index'))
-            
-    def get_spiel():
-        if 'spiel' not in g:
-            g.spiel = DeutschesSpiel(use_semantic=False)
-            
-        return g.spiel
     
-    def get_next_entry():
-        if 'next_entry' not in g:
-            g.next_entry = get_spiel().get_next_entry()
-            
-        return g.next_entry 
+    def get_spiel():
+        return spiel
 
     return app
 
 if __name__ == "__main__":
-    print("hey!")
     create_app().run(port=os.environ.get("SPIEL_PORT"))

@@ -14,8 +14,10 @@ logger = get_logger()
 SCORE_FILE_NAME = "_scores.txt"
 
 class DeutschesSpiel:
-    def __init__(self, use_semantic=False):
+    def __init__(self, reload=False, use_semantic=False):
+        self._reload = reload
         self._use_semantic = use_semantic
+        
         self._rows = {}  #{<word>: {"de_to_en":<>, "translation":<>,...}}
         self._basic_scores = {}  #{<word>:[90.0, 45.0,...]}
         
@@ -36,7 +38,7 @@ class DeutschesSpiel:
                 exit(f"The environment variable {DEEPL_KEY_VAR} is not set.")
                           
             compiler = Compiler(api_key)
-            compiler.compile()
+            compiler.compile(self._reload)
             
             if not util.file_exists(DUMP_FILE_NAME):
                 exit("No dump file found and could not create one inline.")
@@ -83,16 +85,16 @@ class DeutschesSpiel:
         
         while True:        
             if index >= sn or asked >= interval:
-                if asked >= interval:
-                    asked = 0
-                    interval = random.randint(1, ideal_interval)
-
                 idx = random.randint(0, n - 1)
                 entry = self._rows[idx]
                 word = entry["word"]
 
                 if word in used_words or idx in question_indices:
                     continue
+                
+                if asked >= interval:
+                    asked = 0
+                    interval = random.randint(1, ideal_interval)
 
                 question_indices.add(idx)
                 yield word
@@ -123,8 +125,13 @@ class DeutschesSpiel:
     def exit_game(self):
         with open(SCORE_FILE_NAME, 'w') as file:
             logger.debug(f"Dumping all scores to file.")
-            json.dump(self._basic_scores, file)    
-        
+            json.dump(self._basic_scores, file)
+            
+    def get_answer_score(self, answer, translation):
+        similarity_score = find_similarity(answer, translation, self._use_semantic)
+        score = normalized_score(similarity_score, self._use_semantic)
+        return (correctness_string(score), score)
+     
     def play_game(self):
         next_entry = self.get_next_entry()
         while True:
@@ -134,10 +141,10 @@ class DeutschesSpiel:
             user_answer = input(
                 Fore.CYAN + f'Was bedeutet {word}?: ' + Style.RESET_ALL).strip().lower()
             if len(user_answer) > 0:
-                similarity_score = find_similarity(user_answer, entry["translation"], self._use_semantic)
-                score = normalized_score(similarity_score, self._use_semantic)
+                (score_string, score) = self.get_answer_score(
+                    user_answer, entry["translation"])
                 print(
-                    f"Deine Antwort ist {correctness_string(score)}, " +
+                    f"Deine Antwort ist {score_string}, " +
                     f"Ähnlichkeitwert {score}")
             else:
                 score = 0
