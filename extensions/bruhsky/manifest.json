@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "Brusky My Bruh",
+    "version": "0.01",
+    "permissions": [
+        "notifications",
+        "alarms"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup/popup.html",
+        "default_icon": "images/brusky_icon.png"
+    }
+  }
