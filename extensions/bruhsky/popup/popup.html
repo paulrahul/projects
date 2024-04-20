@@ -1,5 +1,51 @@
 <html>
+  <head>
+    <script src="popup.js"></script>
+  </head>
+
+  <style>
+    /* CSS code to style the button */
+    .base-button {
+      color: white; /* Sets the text color to white */
+      /* padding: 10px 20px; /* Adds some padding to the button */
+      border: none; /* Removes the border */
+      border-radius: 5px; /* Adds rounded corners */
+      cursor: pointer; /* Changes the cursor to a pointer on hover */
+    }
+
+    #stopButton {
+      background-color: red; /* Sets the background color to red */
+    }
+
+    #startButton {
+      background-color: green; /* Sets the background color to red */
+    }
+
+    .smallText {
+      font-size: 14px; /* Adjust the font size as needed */
+      color: #555; /* Text color */
+      margin-top: 5px; /* Top margin */
+    }    
+  </style>
+
   <body>
     <h1>Hello Extensions</h1>
+    <table>
+      <tr>
+        <td>
+          <button id="historyButton">History</button>  
+        </td>
+      </tr>
+
+      <tr width="100%">
+        <td width="100%"><div class="smallText"  id="alarmInfo"></div></td>
+      </tr>
+
+      <tr>
+        <td><button class="base-button" id="stopButton">Stop</button></td>
+        <td><button class="base-button" id="startButton">Start</button></td>
+      </tr>
+    </table>
+    
   </body>
 </html>

@@ -3,8 +3,11 @@
     "name": "Brusky My Bruh",
     "version": "0.01",
     "permissions": [
+        "alarms",
+        "history",
         "notifications",
-        "alarms"
+        "storage",
+        "tabs"
     ],
     "background": {
       "service_worker": "background.js"
