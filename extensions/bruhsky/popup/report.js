@@ -44,6 +44,20 @@ function getVisitHistory(callback) {
     }); //then
 }
 
+function printTabTimes(items) {
+    let table = document.getElementById("timeSpentTable");
+    table.innerHTML = ""; // Clear existing data
+
+    for (const item of items) {
+        let row = table.insertRow();
+        let domainCell = row.insertCell(0);
+        let timeCell = row.insertCell(1);
+
+        domainCell.textContent = item[0][1];
+        timeCell.textContent = formatTime(item[0][0]);
+    }    
+}
+
 // Function to retrieve and display time spent data
 function displayTimeSpent() {
     // [[visitTime, URL]]
@@ -52,6 +66,29 @@ function displayTimeSpent() {
         // console.log(`Final visits: ${allVisits}`)
 
         // Now create the chronological history.
+        visitMap = new Map();
+        let len = allVisits.length;
+        console.log(len);
+        for (let i = 0; i < len; i++) {
+            if (i == 0) {
+                continue;
+            }
+
+            let timeElapsed = allVisits[i][0] - allVisits[i - 1][0];
+            let url = allVisits[i - 1][1];
+            if (visitMap.has(url)) {
+                timeElapsed += visitMap[url];
+            }
+            visitMap.set(url, timeElapsed);
+        }
+
+        // Convert the map into an array of entries
+        let visitArray = Array.from(visitMap);
+
+        // Sort the array based on the values in descending order
+        visitArray.sort((a, b) => b[1] - a[1]);
+        // let sortedMap = new Map(visitArray);        
+        printTabTimes(visitArray);
     });
 /*
     chrome.storage.local.get(['timeSpent'], function(result) {

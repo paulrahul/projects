@@ -33,7 +33,7 @@ function updatePopup(alarm) {
     if (alarm == undefined) {
         document.getElementById('alarmInfo').innerHTML += `No alarms`;        
     } else {
-        document.getElementById('alarmInfo').innerHTML += `${alarm.name}: ${alarm.periodInMinutes}`;        
+        document.getElementById('alarmInfo').innerHTML += `Firing in: ${alarm.remaining} mins`;        
     }
 }
 

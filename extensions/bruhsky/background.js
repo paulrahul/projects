@@ -1,10 +1,27 @@
 /*******  Reminder module *******/
+const reminderIntervalMins = 30;
+
+let lastReminderTime = null;
+getLastReminderTime();
+
+function getLastReminderTime() {
+    chrome.storage.local.get('lastReminderTime', function(result) {
+        lastReminderTime = result.lastReminderTime;
+    });
+}
+
+function setlastReminderTime(ts) {
+    lastReminderTime = ts;
+    chrome.storage.local.set({ 'lastReminderTime': ts }, function() {
+    });    
+}
 
 chrome.runtime.onInstalled.addListener(() => {
     // Set up periodic reminders
     chrome.alarms.create('periodicReminder', {
-      periodInMinutes: 30 // adjust the period as needed
+      periodInMinutes: reminderIntervalMins // adjust the period as needed
     });
+    setlastReminderTime(Date.now());
 
     // Register the times for all existing tabs.
     // chrome.tabs.query({}, function(tabs) {
@@ -14,7 +31,7 @@ chrome.runtime.onInstalled.addListener(() => {
     //         // Do something with each tab
     //         handleVisitedURL(url);
     //     });
-    // });    
+    // });
 });
 
 chrome.alarms.onAlarm.addListener(alarm => {
@@ -25,6 +42,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
     if (alarm.name === 'periodicReminder') {
       showNotification("Don't forget to take a break!", sticky=true); // customize message
+      setlastReminderTime(Date.now());
     }
 });
 
@@ -46,16 +64,23 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 
 function getAlarmInfo(name) {
     chrome.alarms.get(name, function(alarm) {
-        // Send the alarm information to the popup script
-        chrome.runtime.sendMessage({action: "alarmInfo", alarm: alarm});            
+        if (alarm == undefined) {
+            chrome.runtime.sendMessage({action: "alarmInfo", alarm: alarm});
+        } else {
+            // console.log(`Now: ${Date.now()}, lastReminderTime: ${lastReminderTime}`);
+            // Send the alarm information to the popup script
+            let timeLeftMins = Math.round(
+                reminderIntervalMins -  ((Date.now() - lastReminderTime) / (1000 * 60)));
+            chrome.runtime.sendMessage({action: "alarmInfo", alarm: {remaining: timeLeftMins}});
+        }            
     });
 }
   
 function showNotification(message, sticky=false) {
-    console.log("Notification " + message + " to be sent.")
+    // console.log("Notification " + message + " to be sent.")
     chrome.notifications.create(
         options = {
-            iconUrl: 'images/notification.png', // provide an icon
+            iconUrl: 'images/water.png', // provide an icon
             title: 'Reminder',
             type: 'basic',
             message: message,
