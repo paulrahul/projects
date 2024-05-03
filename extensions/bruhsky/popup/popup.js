@@ -25,6 +25,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });      
 });
 
+function populateNextQuestion() {
+    // Make a GET request to the REST API
+    var apiUrl = 'http://deutsches-spiel-408818.lm.r.appspot.com/next_question?mode=json'; // Replace with your API endpoint
+
+    fetch(apiUrl)
+        .then(response => {
+            // Check if response is successful (status code 200)
+            if (response.ok) {
+                return response.json();    
+            } else {
+                throw new Error('Network response was not ok: ' + response);   
+            }
+        })
+        .then(data => {
+            // Process the API response
+            var responseData = data; // Assuming the response is JSON
+
+            var word = JSON.stringify(responseData.next_question.word); // Example extraction of data from JSON
+            var translation = JSON.stringify(responseData.next_question.translation); // Example extraction of data from JSON
+            // Update the popup UI with the response data
+            document.getElementById('questionText').innerHTML = `${word} means ${translation}`;   
+        })
+        .catch(error => {
+            // Handle any errors that occur during the fetch operation
+            console.error('Fetch error:', error);
+        });    
+}
+
+
 function updatePopup(alarm) {
     // Clear previous alarm information
     document.getElementById('alarmInfo').innerHTML = '';
@@ -35,6 +64,9 @@ function updatePopup(alarm) {
     } else {
         document.getElementById('alarmInfo').innerHTML += `Firing in: ${alarm.remaining} mins`;        
     }
+
+    // Display a German drop of knowledge.
+    populateNextQuestion();
 }
 
 // Send a message to the background script to get alarm information

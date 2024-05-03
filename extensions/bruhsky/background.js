@@ -12,16 +12,20 @@ function getLastReminderTime() {
 
 function setlastReminderTime(ts) {
     lastReminderTime = ts;
-    chrome.storage.local.set({ 'lastReminderTime': ts }, function() {
+        chrome.storage.local.set({ 'lastReminderTime': ts }, function() {
     });    
+}
+
+function createAlarm() {
+    chrome.alarms.create('periodicReminder', {
+        periodInMinutes: reminderIntervalMins // adjust the period as needed
+    });
+    setlastReminderTime(Date.now());
 }
 
 chrome.runtime.onInstalled.addListener(() => {
     // Set up periodic reminders
-    chrome.alarms.create('periodicReminder', {
-      periodInMinutes: reminderIntervalMins // adjust the period as needed
-    });
-    setlastReminderTime(Date.now());
+    createAlarm();
 
     // Register the times for all existing tabs.
     // chrome.tabs.query({}, function(tabs) {
@@ -34,6 +38,36 @@ chrome.runtime.onInstalled.addListener(() => {
     // });
 });
 
+function getNextQuestion(cb) {
+    // Make a GET request to the REST API
+    var apiUrl = 'http://deutsches-spiel-408818.lm.r.appspot.com/next_question?mode=json'; // Replace with your API endpoint
+
+    fetch(apiUrl)
+        .then(response => {
+            // Check if response is successful (status code 200)
+            if (response.ok) {
+                return response.json();    
+            } else {
+                throw new Error('Network response was not ok: ' + response);   
+            }
+        })
+        .then(data => {
+            // Process the API response
+            var responseData = data; // Assuming the response is JSON
+
+            var word = JSON.stringify(responseData.next_question.word); // Example extraction of data from JSON
+            var translation = JSON.stringify(responseData.next_question.translation); // Example extraction of data from JSON
+            // Update the popup UI with the response data
+            questionText = `${word} means ${translation}`;
+            cb(questionText); 
+        })
+        .catch(error => {
+            // Handle any errors that occur during the fetch operation
+            console.error('Fetch error:', error);
+            cb("")
+        });    
+}
+
 chrome.alarms.onAlarm.addListener(alarm => {
     // if (!isBrowserActive()) {
     //     console.log("Browser not active.")
@@ -41,7 +75,12 @@ chrome.alarms.onAlarm.addListener(alarm => {
     // }
 
     if (alarm.name === 'periodicReminder') {
-      showNotification("Don't forget to take a break!", sticky=true); // customize message
+      getNextQuestion(function(text) {
+        if (text.length == 0) {
+            text = "Don't forget to take a break!"
+        }
+        showNotification(text, sticky=true); // customize message
+      });
       setlastReminderTime(Date.now());
     }
 });
@@ -53,9 +92,7 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
         chrome.alarms.clear('periodicReminder');
     } else if (message.action === "startAlarm") {
         // Clear the periodic alarm
-        chrome.alarms.create('periodicReminder', {
-            periodInMinutes: 30 // adjust the period as needed
-        });        
+        createAlarm();      
     } else if (message.action === "getAlarmInfo") {
         // Call the function to get alarm information
         getAlarmInfo("periodicReminder");

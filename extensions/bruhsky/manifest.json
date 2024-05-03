@@ -15,5 +15,6 @@
     "action": {
         "default_popup": "popup/popup.html",
         "default_icon": "images/handshake.png"
-    }
+    },
+    "host_permissions": ["http://deutsches-spiel-408818.lm.r.appspot.com/*"]
   }
