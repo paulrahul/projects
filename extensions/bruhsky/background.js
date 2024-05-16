@@ -20,7 +20,7 @@ function createAlarm() {
     chrome.alarms.create('periodicReminder', {
         periodInMinutes: reminderIntervalMins // adjust the period as needed
     });
-    setlastReminderTime(Date.now());
+    displayReminderMessage();
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -54,18 +54,29 @@ function getNextQuestion(cb) {
         .then(data => {
             // Process the API response
             var responseData = data; // Assuming the response is JSON
-
-            var word = JSON.stringify(responseData.next_question.word); // Example extraction of data from JSON
-            var translation = JSON.stringify(responseData.next_question.translation); // Example extraction of data from JSON
-            // Update the popup UI with the response data
-            questionText = `${word} means ${translation}`;
-            cb(questionText); 
+            cb(responseData.next_question); 
         })
         .catch(error => {
             // Handle any errors that occur during the fetch operation
             console.error('Fetch error:', error);
             cb("")
         });    
+}
+
+function displayReminderMessage() {
+    getNextQuestion(function(next_question) {
+        var word = JSON.stringify(next_question.word); // Example extraction of data from JSON
+        var translation = JSON.stringify(next_question.translation); // Example extraction of data from JSON
+        var synonyms = next_question.synonyms;
+
+        text = `${word} means ${translation}`;
+        if (synonyms.trim().length > 0) {
+            text += `. Also ${JSON.stringify(synonyms)}`;
+        }
+        text = "TAKE A BREAK - DRINK WATER!\n\n" + text;
+        showNotification(text, "", sticky=true); // customize message
+      });
+      setlastReminderTime(Date.now());
 }
 
 chrome.alarms.onAlarm.addListener(alarm => {
@@ -75,13 +86,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
     // }
 
     if (alarm.name === 'periodicReminder') {
-      getNextQuestion(function(text) {
-        if (text.length == 0) {
-            text = "Don't forget to take a break!"
-        }
-        showNotification(text, sticky=true); // customize message
-      });
-      setlastReminderTime(Date.now());
+        displayReminderMessage();
     }
 });
 
@@ -112,8 +117,8 @@ function getAlarmInfo(name) {
         }            
     });
 }
-  
-function showNotification(message, sticky=false) {
+
+function showNotification(message, contextMessage="", sticky=false) {
     // console.log("Notification " + message + " to be sent.")
     chrome.notifications.create(
         options = {
@@ -121,10 +126,16 @@ function showNotification(message, sticky=false) {
             title: 'Reminder',
             type: 'basic',
             message: message,
+            contextMessage: contextMessage,
+            buttons: [{title: "Details"}],            
             requireInteraction: sticky,
         }
     );
 }
+
+chrome.notifications.onButtonClicked.addListener(function(cb) {
+
+});
 
 /*******  Reminder module *******/
 
