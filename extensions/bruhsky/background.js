@@ -1,5 +1,5 @@
 /*******  Reminder module *******/
-const reminderIntervalMins = 30;
+const reminderIntervalMins = 3;
 
 let lastReminderTime = null;
 getLastReminderTime();
@@ -65,14 +65,26 @@ function getNextQuestion(cb) {
 
 function displayReminderMessage() {
     getNextQuestion(function(next_question) {
-        var word = JSON.stringify(next_question.word); // Example extraction of data from JSON
-        var translation = JSON.stringify(next_question.translation); // Example extraction of data from JSON
-        var synonyms = next_question.synonyms;
+        text = "";
 
-        text = `${word} means ${translation}`;
-        if (synonyms.trim().length > 0) {
-            text += `. Also ${JSON.stringify(synonyms)}`;
+        if (next_question.mode == "word") {
+            var word = JSON.stringify(next_question.word); // Example extraction of data from JSON
+            var translation = JSON.stringify(next_question.translation); // Example extraction of data from JSON
+            var synonyms = next_question.synonyms;
+    
+            text = `${word} means ${translation}`;
+            if (synonyms.trim().length > 0) {
+                text += `. Also ${JSON.stringify(synonyms)}`;
+            }
+        } else if (next_question.mode == "preposition") {
+            var verb = next_question.verb;
+            var preposition = next_question.preposition;
+            var akkdat = next_question.akk_dat;
+            var bedeutung = next_question.bedeutung;
+
+            text = `${verb} ${preposition} + ${akkdat} \n::: ${bedeutung}`
         }
+
         text = "TAKE A BREAK - DRINK WATER!\n\n" + text;
         showNotification(text, "", sticky=true); // customize message
       });

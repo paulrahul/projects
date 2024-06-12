@@ -42,10 +42,20 @@ function populateNextQuestion() {
             // Process the API response
             var responseData = data; // Assuming the response is JSON
 
-            var word = JSON.stringify(responseData.next_question.word); // Example extraction of data from JSON
-            var translation = JSON.stringify(responseData.next_question.translation); // Example extraction of data from JSON
-            // Update the popup UI with the response data
-            document.getElementById('questionText').innerHTML = `${word} means ${translation}`;   
+            if (responseData.next_question.mode == "word") {
+                var word = JSON.stringify(responseData.next_question.word); // Example extraction of data from JSON
+                var translation = JSON.stringify(responseData.next_question.translation); // Example extraction of data from JSON
+                // Update the popup UI with the response data
+                document.getElementById('questionText').innerHTML = `${word} means ${translation}`;
+            } else if (responseData.next_question.mode == "preposition") {
+                var verb = responseData.next_question.verb;
+                var preposition = responseData.next_question.preposition;
+                var akkdat = responseData.next_question.akk_dat;
+                var bedeutung = responseData.next_question.bedeutung;
+    
+                document.getElementById('questionText').innerHTML = `${verb} ${preposition} + ${akkdat} \n::: ${bedeutung}`
+    
+            }
         })
         .catch(error => {
             // Handle any errors that occur during the fetch operation
