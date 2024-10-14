@@ -1,0 +1,164 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    margin: 0;
+}
+h3 {
+    text-align: center;
+    font-size: 3vw;  /* Scales with screen size */
+    margin: 20px 0;
+}
+
+h4 {
+    text-align: center;
+    font-size: 2vw;  /* Scales with screen size */
+    margin: 20px 0;
+    font-style: italic;
+}
+
+.answers {
+    margin: 20px 0;
+    text-align: center;
+}
+.answers label {
+    display: block;
+    margin-bottom: 15px;
+    font-size: 2vw;  /* Responsive font size */
+}
+input[type="checkbox"] {
+    transform: scale(1.5);  /* Increase checkbox size for touch devices */
+    margin-right: 10px;
+}
+.controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+select, button {
+    padding: 12px;
+    font-size: 1vw;  /* Responsive size for buttons and dropdown */
+    margin: 10px;
+    width: 90%;
+    max-width: 200px;
+}
+.button-row {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 400px;
+    margin: 10px 0;
+}
+button {
+    padding: 12px;
+    font-size: 1vw;  /* Responsive size */
+    width: 48%; /* Make buttons side by side take equal width */
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #0056b3;
+}
+select {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    max-width: 100px;
+}
+
+.mode-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    font-size: 1vw;
+}
+
+.mode-toggle label {
+    margin-right: 10px;
+}
+
+#mode-switch {
+    transform: scale(1.5); /* Make the switch bigger for easier touch */
+}
+
+/* Style for media container */
+.question-media {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.media-and-answers {
+    display: flex;
+    align-items: flex-start; /* Aligns items at the top */
+    gap: 20px; /* Adds space between the image/video and the answers */
+}
+
+.question-media {
+    max-width: 550px;
+    /* Adjust max-width based on your design */
+}
+
+.answers {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Style for video modal */
+.modal {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5); /* Black background with opacity */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.modal-content video {
+    max-width: 100%;
+    height: auto;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    h1 {
+        font-size: 6vw;
+    }
+    label {
+        font-size: 5vw;
+    }
+    button {
+        font-size: 5vw;
+        padding: 10px;
+    }
+    select {
+        font-size: 5vw;
+    }
+}

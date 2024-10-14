@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Führerschein Bitte</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark_theme_toggle.css">    
+</head>
+<body>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+
+    <div class="toggle_container"></div>
+        <span>	&#9728; </span>
+        <label class="switch">
+          <input type="checkbox" id="toggle">
+          <span class="slider"></span>
+        </label> 
+    </div>
+
+    <div class="mode-toggle">
+        <label for="mode-switch">Read Mode</label>
+        <input type="checkbox" id="mode-switch">
+    </div>    
+
+
+    <h3 id="question-text">Question Text</h3>
+    <h4 id="question-en-text">Question Text</h4>
+
+    <div class="media-and-answers">
+        <div class="question-media">
+            <img id="question-image" src="" alt="Question Image" style="display:none; max-width: 550px;">
+            <a href="#" id="question-video-link" style="display:none;">Watch Video</a>
+        </div>
+
+        <div class="answers">
+            <label><input type="checkbox" id="asw_1"> <span id="asw_text_1"></span></label>
+            <label><input type="checkbox" id="asw_2"> <span id="asw_text_2"></span></label>
+            <label><input type="checkbox" id="asw_3"> <span id="asw_text_3"></span></label>
+        </div>
+    </div>
+
+    <div class="controls">
+        <!-- First row: Previous and Next buttons -->
+        <div class="button-row">
+            <button id="previous">Previous</button>
+            <button id="next">Next</button>
+        </div>
+
+        <!-- Second row: Submit and Mark buttons -->
+        <div class="button-row">
+            <button id="submit" class="play-mode">Submit</button>
+            <button id="mark">Mark Question</button>
+        </div>
+
+        <!-- Unmark button (hidden by default) -->
+        <button id="unmark" style="display: none;">Unmark Question</button>
+    </div>
+
+
+    <label for="question-index">Question: </label>
+    <select id="question-index"></select>
+    <!-- <input type="text" id="question-index" placeholder="Question number"> -->
+
+    <label for="image-question-index">Image questions: </label>
+    <select id="image-question-index"></select>
+
+    <label for="video-question-index">Video questions: </label>
+    <select id="video-question-index"></select> 
+    
+    <label for="single-question-index">Single answer questions: </label>
+    <select id="single-question-index"></select>
+
+    <!-- Video modal -->
+    <div id="video-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="modal-close">&times;</span>
+            <video id="question-video" controls>
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script src="dark_theme_toggle.js"></script>
+
+</body>
+</html>
