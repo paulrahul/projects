@@ -96,46 +96,31 @@ class DataExtractor:
         return (response.text, len(de_text))
 
     def _translate_row(self, row):
-        translation, billed = self._translate_from_deutsch(row["de_text"])
-        row["en_text"] = translation
+        for i in range(1, 4):
+            key = "asw_" + str(i)
+            if key not in row:
+                continue
+            translation, billed = self._translate_from_deutsch(row[key])
+            row["en_" + key] = translation
         
-        with self._lock:
-            self._billed_characters += billed
-            if self._billed_characters > 200000:  # 200k
-                raise Exception(f"Limit exceeded: {self._billed_characters}")        
+            with self._lock:
+                self._billed_characters += billed
+                if self._billed_characters > 300000:  # 300k
+                    raise Exception(f"Limit exceeded: {self._billed_characters}")        
 
     def extract(self, data):
         new_json_data = []
-        for row in data:
-            if not row or "text" not in row:
-                continue
-
-            new_row = row
-            if "de_text" not in new_row:
-                de_text = codecs.decode(row["text"], "rot_13")
-                new_row["de_text"] = de_text
-
-            new_json_data.append(new_row)
         
-        existing_hashes = set()
-        with open(QNS_FILE_NAME + "_translated.json", 'r') as file:
-            existing_data = json.load(file)
-            
-            for row in existing_data:
-                existing_hashes.add(hash_string_fnv(row["text"]))
+        for row in data:
+            if not row:
+                continue
+            new_json_data.append(row)
         
         pool = Pool(self._num_threads)
         try:
             for i, row in enumerate(new_json_data):
-                hash_str = hash_string_fnv(row["text"])
-                
-                if hash_str in existing_hashes:
-                    print(f"Skipping {row['de_text']} as it's already translated.")
-                    continue
-                else:
-                    print(f"{row['text']} needs to be translated yet.")
-                # g = pool.spawn(self._translate_row, row)
-                # g.name = str(i)
+                g = pool.spawn(self._translate_row, row)
+                g.name = str(i)
                 
             pool.join(timeout=10, raise_error=True)
         except Exception as e:
@@ -144,15 +129,15 @@ class DataExtractor:
             pool.kill()
             raise
 
-        new_data = "const data = "
-        formatted_data = json.dumps(new_json_data, indent=4)
-        new_data += formatted_data + ";"
+        # # new_data = "const data = "
+        # # formatted_data = json.dumps(new_json_data, indent=4)
+        # # new_data += formatted_data + ";"
         
         print(f"{self._billed_characters=}")
         
         # Write the updated list back to the file
-        # with open(QNS_FILE_NAME + "_translated.json", 'w') as file:
-        #     file.write(new_data)
+        with open(QNS_FILE_NAME + "_translated.json", 'w') as file:
+            file.write(json.dumps(new_json_data, indent=4))
 
 QNS_FILE_NAME = "dbTblQ_v1"
 if __name__ == "__main__":
@@ -171,8 +156,10 @@ if __name__ == "__main__":
             num_threads=args.N
         )
         
-        # o.extract(data)
-        o.data_stats(data)
+        o.extract(data)
+        # o.data_stats(data)
+        # t, bc = o._translate_from_deutsch("- bremst unerwartet")
+        # print(t, bc)
     
     
     
