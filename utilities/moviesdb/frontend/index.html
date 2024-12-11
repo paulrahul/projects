@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MUBI Film Browser</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="container mx-auto">
+        <div class="mb-4">
+            <label class="block mb-2">Search URL</label>
+            <input type="text" id="searchUrlInput" 
+                class="w-full border rounded-md p-2" 
+                placeholder="Enter MUBI API URL"
+                value="https://api.mubi.com/v4/browse/films?sort=popularity_quality_score&country=India&year=2010">
+            <button id="searchButton" 
+                class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md">
+                Search
+            </button>
+        </div>
+        <div class="mb-4">
+            <label class="block mb-2">Find</label>
+            <input type="text" id="findInput" 
+                class="w-full border rounded-md p-2" 
+                placeholder="Search within results">
+            <button id="findButton" 
+                class="mt-2 bg-green-500 text-white px-4 py-2 rounded-md">
+                Find
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center">Loading...</div>
+
+        <table id="filmsTable" class="w-full border-collapse hidden">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="p-2 border">Image</th>
+                    <th class="p-2 border">Movie</th>
+                    <th class="p-2 border">Details</th>
+                    <th class="p-2 border">Synopsis</th>
+                    <th class="p-2 border">Trailer</th>
+                </tr>
+            </thead>
+            <tbody id="filmsTableBody"></tbody>
+        </table>
+
+        <div id="paginationContainer" class="flex justify-center mt-4 space-x-2"></div>
+    </div>
+
+    <script>
+        class FilmBrowser {
+            constructor() {
+                this.searchUrlInput = document.getElementById('searchUrlInput');
+                this.searchButton = document.getElementById('searchButton');
+                this.findInput = document.getElementById('findInput');
+                this.findButton = document.getElementById('findButton');
+                this.loadingIndicator = document.getElementById('loadingIndicator');
+                this.filmsTable = document.getElementById('filmsTable');
+                this.filmsTableBody = document.getElementById('filmsTableBody');
+                this.paginationContainer = document.getElementById('paginationContainer');
+
+                this.allFilms = [];
+                this.filteredFilms = [];
+                this.currentPage = 1;
+                this.itemsPerPage = 30;
+                this.totalPages = 1;
+
+                this.bindEvents();
+                this.addKeyboardNavigation();
+            }
+
+            bindEvents() {
+                this.searchButton.addEventListener('click', () => this.fetchFilms());
+                this.findButton.addEventListener('click', () => this.filterFilms());
+                this.findInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') { // Check if the pressed key is 'Enter'
+                        this.filterFilms(); // Simulate a button click
+                    }
+                });
+
+            }
+
+            async callUrl(url) {
+                const response = await fetch(url, {
+                    headers: {
+                        'Client-Country': 'DE',
+                        'Client': 'web'
+                    }
+                });
+                const data = await response.json();
+                return data;
+            }
+
+            extractFilmData(films) {
+                let ret = [];
+                for (let i = 0; i < films.length; i++) {
+                    ret.push({
+                        "title": films[i].title,
+                        "genres": films[i].genres,
+                        "directors": films[i].directors,
+                        "short_synopsis": films[i].short_synopsis,
+                        "still_url": films[i].still_url,
+                        "trailer_url": films[i].trailer_url
+                    });
+                }
+
+                return ret;
+            }
+
+            async fetchAllFilms(url) {
+                // Check cache first.
+                const cachedFilms = localStorage.getItem(url);
+                if (cachedFilms) {
+                    this.allFilms = JSON.parse(cachedFilms);
+                    return;
+                }
+
+                try {
+                    // First call base URL.
+                    const data = await this.callUrl(url);
+                    this.allFilms.push(...this.extractFilmData(data.films));
+
+                    // Now call page URLs.
+                    const pageCount = data.meta.total_pages;
+                    for (let i = 2; i <= pageCount; i++) {
+                        const data = await this.callUrl(url + "&page=" + i);
+                        this.allFilms.push(...this.extractFilmData(data.films));
+                    }
+
+                    localStorage.setItem(url, JSON.stringify(this.allFilms));
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }  
+
+            async fetchFilms() {
+                const url = this.searchUrlInput.value;
+                if (!url) return;
+
+                this.loadingIndicator.classList.remove('hidden');
+                this.filmsTable.classList.add('hidden');
+
+                if (this.allFilms.length == 0) {
+                    await this.fetchAllFilms(url);
+                }
+
+                this.filteredFilms = [...this.allFilms];
+                this.renderFilms();
+
+                this.loadingIndicator.classList.add('hidden');
+                this.filmsTable.classList.remove('hidden');
+            }
+
+            filterFilms() {
+                const searchTerm = this.findInput.value.toLowerCase();
+                
+                this.filteredFilms = this.allFilms.filter(film => 
+                    film.title.toLowerCase().includes(searchTerm) ||
+                    film.short_synopsis.toLowerCase().includes(searchTerm) ||
+                    film.directors.some(d => d.name.toLowerCase().includes(searchTerm)) ||
+                    film.genres.some(g => g.toLowerCase().includes(searchTerm))
+                );
+
+                this.currentPage = 1;
+                this.renderFilms();
+            }
+
+            renderFilms() {
+                this.totalPages = Math.ceil(this.filteredFilms.length / this.itemsPerPage);
+
+                const start = (this.currentPage - 1) * this.itemsPerPage;
+                const end = start + this.itemsPerPage;
+                const displayedFilms = this.filteredFilms.slice(start, end);
+
+                this.filmsTableBody.innerHTML = displayedFilms.map(film => `
+                    <tr>
+                        <td class="p-2 border text-center">
+                            <img src="${film.still_url }" alt="${film.title}" class="mx-auto w-36 h-auto">
+                        </td>
+                        <td class="p-2 border text-center">
+                            <p class="font-bold">${film.title}</p>
+                        </td>
+                        <td class="p-2 border">
+                            <p>Director: ${film.directors.map(d => d.name).join(', ')}</p>
+                            <p>Year: ${film.year}</p>
+                            <p>Genres: ${film.genres.join(', ')}</p>
+                        </td>
+                        <td class="p-2 border">${film.short_synopsis}</td>
+                        <td class="p-2 border text-center">
+                            ${film.trailer_url ? `<a href="${film.trailer_url}" target="_blank" class="text-blue-500 hover:underline">🔗</a>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+
+                this.renderPagination(this.totalPages);
+            }
+
+            renderPagination(totalPages) {
+                // Calculate the range of pages to display
+                const currentPage = this.currentPage;
+                const displayRange = 5;
+                const startPage = Math.max(1, Math.min(currentPage, totalPages - displayRange + 1));
+                const endPage = Math.min(totalPages, startPage + displayRange - 1);
+
+                // Create pagination HTML
+                let paginationHtml = '';
+
+                // Previous button
+                if (startPage > 1) {
+                    paginationHtml += `
+                        <button class="px-4 py-2 border rounded bg-white"
+                            onclick="filmBrowser.changePage(${startPage - 1})">
+                            Previous
+                        </button>
+                    `;
+                }
+
+                // Page range buttons
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHtml += `
+                        <button class="px-4 py-2 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white'}"
+                            onclick="filmBrowser.changePage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+
+                // Next button
+                /*
+                if (currentPage < totalPages) {
+                    paginationHtml += `
+                        <button class="px-4 py-2 border rounded bg-white"
+                            onclick="filmBrowser.changePage(${currentPage + 1})">
+                            Next
+                        </button>
+                    `;
+                }*/
+
+                // Last page button
+                if (currentPage < totalPages) {
+                    paginationHtml += `
+                        <button class="px-4 py-2 border rounded bg-white"
+                            onclick="filmBrowser.changePage(${totalPages})">
+                            Last Page
+                        </button>
+                    `;
+                }
+
+                this.paginationContainer.innerHTML = paginationHtml;
+            }
+
+            changePage(page) {
+                this.currentPage = page;
+                this.renderFilms();
+            }
+
+            addKeyboardNavigation() {
+                document.addEventListener('keydown', (event) => {
+                    // Prevent keyboard navigation if an input is focused
+                    if (document.activeElement.tagName === 'INPUT') return;
+
+                    switch(event.key.toUpperCase()) {
+                        case 'J':
+                            event.preventDefault();
+                            this.navigateToNextPage();
+                            break;
+                        case 'K':
+                            event.preventDefault();
+                            this.navigateToPreviousPage();
+                            break;
+                    }
+                });
+            }
+
+            navigateToNextPage() {
+                if (this.currentPage < this.totalPages) {
+                    this.changePage(this.currentPage + 1);
+                }
+            }
+
+            navigateToPreviousPage() {
+                if (this.currentPage > 1) {
+                    this.changePage(this.currentPage - 1);
+                }
+            }
+        }
+
+        const filmBrowser = new FilmBrowser();
+    </script>
+</body>
+</html>
