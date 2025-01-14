@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 from langchain_experimental.agents import create_pandas_dataframe_agent
@@ -8,6 +9,19 @@ import pickle
 import os
 
 app = FastAPI()
+
+# Add CORS middleware
+origins = [
+    "http://localhost",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow specific frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Global variables to manage the server's state
 class ServerState:

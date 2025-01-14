@@ -1,0 +1,64 @@
+<div id="chat">
+    <!-- Messages will be appended here -->
+</div>
+<input type="text" id="messageInput" placeholder="Type a message..." />
+<button onclick="sendMessage()">Send</button>
+
+<script>
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const userMessage = input.value;
+        if (!userMessage) return;
+
+        // Add user's message to chat UI
+        const chat = document.getElementById('chat');
+        chat.innerHTML += `<div class="user-message">${userMessage}</div>`;
+
+        // Call API to get chatbot response
+        const botReply = await fetch('http://localhost:8000/prompt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: userMessage }),
+        }).then(res => res.json());
+
+        // Add bot's reply to chat UI
+        chat.innerHTML += `<div class="bot-message">${botReply.response}</div>`;
+
+        // Clear input field
+        input.value = '';
+    }
+</script>
+
+
+<style>
+    #chat {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        height: 400px;
+        overflow-y: auto;
+        background: #f9f9f9;
+    }
+    
+    .user-message {
+        text-align: right;
+        background: #d1e7ff;
+        margin: 5px 0;
+        padding: 5px 10px;
+        border-radius: 10px;
+        display: inline-block;
+    }
+    
+    .bot-message {
+        text-align: left;
+        background: #f1f1f1;
+        margin: 5px 0;
+        padding: 5px 10px;
+        border-radius: 10px;
+        display: inline-block;
+    }
+</style>
