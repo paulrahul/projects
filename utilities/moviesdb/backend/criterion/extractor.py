@@ -5,6 +5,7 @@ import csv
 import time
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 import logging
+import os
 import re
 import gspread
 import traceback
@@ -19,6 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+CSV_FILE = "criterion_recommendations.csv"
 
 def _extract_name_regex(url):
     pattern = r'collection/\d{3}-(.+?)-s-closet-picks$'
@@ -109,7 +111,8 @@ class CriterionDataCollector:
                         
                     self.movie_data.append({
                         'Title': metadata.get('title', ''),
-                        'Thumbnail': metadata.get('image', ''),
+                        # 'Thumbnail': metadata.get('image', ''),
+                        'Thumbnail': '',
                         'Recommender': _extract_name_regex(closet_pick_url),
                         'Description': metadata.get('description', ''),
                         'Country': metadata.get('country', ''),
@@ -153,19 +156,29 @@ class CriterionDataCollector:
         except Exception as e:
             logger.error(f"Error processing closet pick {closet_pick_url}: {e}")
 
-    def persist_new_recommendations(self, gsheet=True, filename='criterion_data.csv'):
+    def persist_new_recommendations(self, gsheet=False):
+        if len(self.movie_data) == 0:
+            logger.info(f"No new data to write")
+            return False # No data added.
+        
         if gsheet:
             _write_to_gsheet(self.movie_data)
         else:
-            fieldnames = ['closet_pick_url', 'artist(s)', 'movie_url', 'title', 'description', 
-                        'image', 'country', 'year', 'duration']
+            fieldnames = list(self.movie_data[0].keys())
+            # print(f"{self.movie_data=}")
+            if not os.path.exists(CSV_FILE):
+                with open(CSV_FILE, 'w', newline='', encoding='utf-8') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(self.movie_data)
+            else:
+                with open(CSV_FILE, 'a', newline='', encoding='utf-8') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writerows(self.movie_data)
+        
+            logger.info(f"Data written to {CSV_FILE}")
             
-            with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(self.movie_data)
-                
-            logger.info(f"Data written to {filename}")
+        return True # Data added.
         
     def get_closet_pick_urls(self, gsheet=False):
         all = set(extract_closet_picks_links_from_search("https://www.criterion.com/closet-picks/search"))
@@ -173,7 +186,7 @@ class CriterionDataCollector:
         if gsheet:
             existing = set(_fetch_from_gsheet())
         else:
-            with open('criterion_data.csv', mode='r', newline='', encoding='utf-8') as file:
+            with open(CSV_FILE, mode='r', newline='', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
             
                 # Extract the contents of the 'foo' column
@@ -190,7 +203,7 @@ class CriterionDataCollector:
             
             # # closet_pick_urls = extract_closet_picks_links("https://www.criterion.com/closet-picks")
             
-            closet_pick_urls = self.get_closet_pick_urls(gsheet=True)
+            closet_pick_urls = self.get_closet_pick_urls()
             futures = []
             
             logger.info(f"{len(closet_pick_urls)} closets to be processed..")
@@ -211,7 +224,7 @@ class CriterionDataCollector:
         except Exception as e:
             logger.error(f"Error in data collection: {e}")
         finally:
-            self.persist_new_recommendations()  # Ensure we save whatever data we collected
+            return self.persist_new_recommendations()  # Ensure we save whatever data we collected
 
 if __name__ == "__main__":
     collector = CriterionDataCollector(
@@ -220,5 +233,5 @@ if __name__ == "__main__":
         request_delay=1
     )
     
-    collector.collect_data()
-    # print(collector.get_closet_pick_urls(gsheet=True))
+    print(collector.collect_data())
+    # print(collector.get_closet_pick_urls(gsheet=False))
