@@ -10,9 +10,11 @@ import re
 import gspread
 import traceback
 
-from closet_extractor import extract_closet_picks_links, extract_closet_picks_links_from_search
-from closet_movie_extractor import extract_criterion_links
-from movie_details_extractor import extract_film_metadata
+from backend.criterion.closet_extractor import extract_closet_picks_links, extract_closet_picks_links_from_search
+from backend.criterion.closet_movie_extractor import extract_criterion_links
+from backend.criterion.movie_details_extractor import extract_film_metadata
+
+from backend.util import resolved_file_path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CSV_FILE = "criterion_recommendations.csv"
+CSV_FILE = resolved_file_path("criterion_recommendations.csv")
 
 def _extract_name_regex(url):
     pattern = r'collection/\d{3}-(.+?)-s-closet-picks$'

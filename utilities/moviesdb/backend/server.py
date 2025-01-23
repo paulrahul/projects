@@ -7,6 +7,12 @@ import pandas as pd
 import threading
 import pickle
 import os
+import logging
+
+from backend.criterion.extractor import CriterionDataCollector
+from backend.util import resolved_file_path
+
+log = logging.getLogger()
 
 app = FastAPI()
 
@@ -30,26 +36,38 @@ class ServerState:
 
 state = {"status": ServerState.INITIALIZING}
 agent_executor = None
-PICKLE_FILE = "dataframe.pkl"
-CSV_FILE = "criterion_recommendations.csv"
+
+PICKLE_FILE = resolved_file_path("dataframe.pkl")
+CSV_FILE = resolved_file_path("criterion/criterion_recommendations.csv")
 
 # Function to load the DataFrame from a pickle file or CSV
 def load_dataframe():
-    if os.path.exists(PICKLE_FILE):
-        print("Loading DataFrame from pickle file")
-        with open(PICKLE_FILE, "rb") as f:
-            return pickle.load(f)
-    elif os.path.exists(CSV_FILE):
-        print("Loading DataFrame from CSV")
+    log.info("Updating closet database...")
+    
+    collector = CriterionDataCollector(
+        max_movies=2000,
+        max_workers=5,
+        request_delay=1
+    )
+    updated = collector.collect_data()
+    
+    if updated or not os.path.exists(PICKLE_FILE):
+        log.info("Loading DataFrame from CSV")
         df = pd.read_csv(CSV_FILE)
         with open(PICKLE_FILE, "wb") as f:
             pickle.dump(df, f)
         return df
+    elif os.path.exists(PICKLE_FILE):
+        log.info("Loading DataFrame from pickle file")
+        with open(PICKLE_FILE, "rb") as f:
+            return pickle.load(f)
     else:
         raise Exception("Neither pickle nor CSV file exists.")
 
 # Load the CSV and create the LangChain agent in a separate thread
 def initialize_agent():
+    log.info("Starting server...")
+    
     global agent_executor
     try:
         # Load the DataFrame
