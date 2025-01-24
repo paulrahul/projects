@@ -1,8 +1,15 @@
+'''
+~/Codez/projects/utilities/moviesdb: uvicorn backend.server:app --reload
+'''
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 from langchain_experimental.agents import create_pandas_dataframe_agent
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 import pandas as pd
 import threading
 import pickle
@@ -53,7 +60,7 @@ def load_dataframe():
     
     if updated or not os.path.exists(PICKLE_FILE):
         log.info("Loading DataFrame from CSV")
-        df = pd.read_csv(CSV_FILE)
+        df = pd.read_csv(CSV_FILE, on_bad_lines='warn')
         with open(PICKLE_FILE, "wb") as f:
             pickle.dump(df, f)
         return df
@@ -72,6 +79,13 @@ def initialize_agent():
     try:
         # Load the DataFrame
         df = load_dataframe()
+        
+        def extract_themes(descriptions):
+            vectorizer = TfidfVectorizer(max_features=100, stop_words='english')
+            X = vectorizer.fit_transform(descriptions)
+            return vectorizer.get_feature_names_out()
+
+        df['Themes'] = df['Description'].apply(lambda x: extract_themes([x]))
 
         # Create the LangChain agent
         llm = ChatOpenAI(model="gpt-4o", temperature=0)

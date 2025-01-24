@@ -1,3 +1,7 @@
+'''
+Run: ~/Codez/projects/utilities/moviesdb: python -m backend.criterion.extractor
+'''
+
 import csv
 import threading
 from queue import Queue
@@ -10,7 +14,7 @@ import re
 import gspread
 import traceback
 
-from backend.criterion.closet_extractor import extract_closet_picks_links, extract_closet_picks_links_from_search
+from backend.criterion.closet_extractor import extract_closet_picks_links_from_search
 from backend.criterion.closet_movie_extractor import extract_criterion_links
 from backend.criterion.movie_details_extractor import extract_film_metadata
 
@@ -22,7 +26,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CSV_FILE = resolved_file_path("criterion_recommendations.csv")
+CSV_FILE = resolved_file_path("criterion/criterion_recommendations.csv")
 
 def _extract_name_regex(url):
     pattern = r'collection/\d{3}-(.+?)-s-closet-picks$'
