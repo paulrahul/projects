@@ -1,0 +1,15 @@
+.venv
+
+_dump
+
+__pycache__
+
+*.csv
+
+requirements.txt
+
+*.pkl
+
+main.py
+
+*_bk

@@ -17,6 +17,7 @@ import os
 import logging
 
 from backend.criterion.extractor import CriterionDataCollector
+from backend.criterion.keywords import update_preprocessed_data
 from backend.util import resolved_file_path
 
 log = logging.getLogger()
@@ -45,7 +46,7 @@ state = {"status": ServerState.INITIALIZING}
 agent_executor = None
 
 PICKLE_FILE = resolved_file_path("dataframe.pkl")
-CSV_FILE = resolved_file_path("criterion/criterion_recommendations.csv")
+CSV_FILE = resolved_file_path("criterion/preprocessed.csv")
 
 # Function to load the DataFrame from a pickle file or CSV
 def load_dataframe():
@@ -56,9 +57,15 @@ def load_dataframe():
         max_workers=5,
         request_delay=1
     )
+    log.info("Collecting data...")
     updated = collector.collect_data()
     
     if updated or not os.path.exists(PICKLE_FILE):
+        # Here, first get the preprocessed CSV updated.
+        log.info("Updating preprocessed data...")
+        update_preprocessed_data()
+        
+        # And then, load that CSV instead of the original CSV.
         log.info("Loading DataFrame from CSV")
         df = pd.read_csv(CSV_FILE, on_bad_lines='warn')
         with open(PICKLE_FILE, "wb") as f:
@@ -79,13 +86,6 @@ def initialize_agent():
     try:
         # Load the DataFrame
         df = load_dataframe()
-        
-        def extract_themes(descriptions):
-            vectorizer = TfidfVectorizer(max_features=100, stop_words='english')
-            X = vectorizer.fit_transform(descriptions)
-            return vectorizer.get_feature_names_out()
-
-        df['Themes'] = df['Description'].apply(lambda x: extract_themes([x]))
 
         # Create the LangChain agent
         llm = ChatOpenAI(model="gpt-4o", temperature=0)
