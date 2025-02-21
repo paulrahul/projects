@@ -65,5 +65,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     // Clear busy state
-    chrome.action.setBadgeText({ text: "" }); 
+    chrome.action.setBadgeText({ text: "" });
+    chrome.action.setBadgeBackgroundColor({ color: [0, 0, 0, 0] });
 });
