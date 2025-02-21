@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "HN Archive Link Finder",
+  "version": "1.0",
+  "description": "Find and open the archive link for the current page's Hacker News entry.",
+  "permissions": ["tabs", "activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": ["https://hn.algolia.com/*", "https://news.ycombinator.com/*"],
+  "action": {
+    "default_title": "Find HN Archive"
+  }
+}
