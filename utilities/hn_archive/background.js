@@ -2,9 +2,16 @@
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: "hackedNewsPost",
-        title: "Hacked News post",
+        title: "Hacker News post",
         contexts: ["all"] // Show on all pages
     });
+
+    chrome.contextMenus.create({
+        id: "summary",
+        title: "Summarise Hacker News comments",
+        contexts: ["action"],  // Shows when clicking the extension icon
+    });
+
 });
 
 async function getHNEntry(url) {
@@ -52,7 +59,7 @@ function showNotification(title, message) {
         type: "basic",
         iconUrl: "icons/icon128.png",
         title: title,
-        message: message
+        message: message.substring(0, 2000) // Chrome notifications have a character limit
     });
 }
 
@@ -114,6 +121,29 @@ chrome.action.onClicked.addListener(async (tab) => {
     chrome.action.setBadgeBackgroundColor({ color: [0, 0, 0, 0] });
 });
 
+async function summarizeHNComments(hnStoryId) {
+    const hnApiUrl = `https://hn.algolia.com/api/v1/items/${hnStoryId}`;
+    const response = await fetch(hnApiUrl);
+    const data = await response.json();
+
+    if (!data.children || data.children.length === 0) {
+        return "No comments available.";
+    }
+
+    const topComments = data.children
+        .filter(comment => comment.text)
+        .slice(0, 5)
+        .map(comment => comment.text.replace(/<\/?[^>]+(>|$)/g, "")) // Remove HTML tags
+        .join("\n\n");
+
+    return topComments;
+}
+
+function showSummaryPopup(commentsSummary) {
+    const summaryText = `📌 **HN Comments Summary:**\n${commentsSummary}`;
+    showNotification("HN Comments Summary", summaryText);
+}
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "hackedNewsPost") {
 
@@ -127,5 +157,42 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 showNotification("Not Found", "No Hacker News post found for this link");
             }
         });
+    } else if (info.menuItemId === "summary") {
+        // showNotification("Summarizing...", "Fetching top comments summary...");
+
+        // await doWithRetries(async () => {
+        //     const hnStoryId = await getHNEntry(tab.url);
+        //     let commentsSummary = "No Hacker News post found for this link";
+
+        //     if (hnStoryId) {
+        //         commentsSummary = await summarizeHNComments(hnStoryId);
+        //     }
+
+        //     showSummaryPopup(commentsSummary);
+        // });
+
+        // Open the popup with the summary
+        chrome.windows.create({
+            url: chrome.runtime.getURL("popup/popup.html"),
+            type: "popup",
+            width: 500,
+            height: 500
+        });
+
+        let hnStoryId = await getHNEntry(tab.url);
+        if (!hnStoryId) {
+            showNotification("Not Found", "No Hacker News post found for this link");
+            return;
+        }
+
+        let commentsSummary = await summarizeHNComments(hnStoryId);
+        chrome.runtime.sendMessage({ summary: commentsSummary });
+
+        // // Send data to popup
+        // chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        //     if (message.request === "getSummary") {
+        //         sendResponse({ summary: commentsSummary });
+        //     }
+        // });
     }
 });
