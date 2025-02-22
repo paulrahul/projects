@@ -1,10 +1,13 @@
 chrome.runtime.onMessage.addListener((message) => {
     if (message.summary) {
-        document.getElementById("summary").innerText = decodeHTMLEntities(message.summary);
-    }
+        let comments = message.summary
+            .slice(0, 5)
+            .join("\n\n");
 
-    if (message.hnStoryId) {
-        document.getElementById("hnStoryId").value = message.hnStoryId
+        document.getElementById("summary").innerText = decodeHTMLEntities(comments);
+
+        document.getElementById("allComments").value = decodeHTMLEntities(message.summary.join("\n\n"));
+        document.getElementById("get-ai-summary").disabled = false;
     }
 });
 
@@ -12,6 +15,29 @@ function decodeHTMLEntities(text) {
     let textarea = document.createElement("textarea");
     textarea.innerHTML = text;
     return textarea.value;
+}
+
+async function aiSummarizeText(comments, apiKey) {
+    const prompt = `Summarise these comments: ${comments}`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            // model: "gpt-4o",
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content:  prompt}],
+            max_tokens: 200,
+        }),
+    });
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Error summarizing text.";
+
+    // return comments;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -54,9 +80,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Get AI Summary (from OpenAI API)
     getAISummaryBtn.addEventListener("click", () => {
-        aiSummaryDiv.textContent = "Generating AI summary...";
-        const hnStoryId = document.getElementById("hnStoryId").value;
-        chrome.storage.local.get("hane_openai_key", (data) => {
+        chrome.storage.local.get("hane_openai_key", async (data) => {
             if (!data.hane_openai_key) {
                 // aiSummaryDiv.textContent = "No API key saved. Please enter one.";
                 
@@ -68,10 +92,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             apiKeyInput.classList.remove("error");
             apiKeyTooltip.style.display = "none";
 
-            chrome.runtime.sendMessage({ action: "fetch_ai_summary", apiKey: data.hane_openai_key, hnStoryId: hnStoryId }, (response) => {
-                aiSummaryDiv.textContent = response ? response.ai_summary : "Error generating AI summary.";
-                getAISummaryBtn.style.display = "none";
-            });
+            aiSummaryDiv.textContent = "Generating AI summary...";
+            getAISummaryBtn.style.display = "none";
+            const allComments = document.getElementById("allComments").value;
+
+            // chrome.runtime.sendMessage({ action: "fetch_ai_summary", apiKey: data.hane_openai_key, comments: allComments }, (response) => {
+            //     aiSummaryDiv.textContent = response ? response.ai_summary : "Error generating AI summary.";
+            //     getAISummaryBtn.style.display = "none";
+            // });
+
+            const summary = await aiSummarizeText(allComments, data.hane_openai_key);
+            aiSummaryDiv.textContent = summary ? summary : "Error generating AI summary.";
         });
     });
 });

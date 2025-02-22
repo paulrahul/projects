@@ -9,7 +9,7 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: "summary",
         title: "Summarise Hacker News comments",
-        contexts: ["action"],  // Shows when clicking the extension icon
+        contexts: ["all"],  // Shows when clicking the extension icon
     });
 
 });
@@ -132,29 +132,31 @@ async function summarizeHNComments(hnStoryId) {
 
     const topComments = data.children
         .filter(comment => comment.text)
-        .slice(0, 5)
         .map(comment => comment.text.replace(/<\/?[^>]+(>|$)/g, "")) // Remove HTML tags
-        .join("\n\n");
 
     return topComments;
 }
 
-async function aiSummarizeText(hnStoryId, apiKey) {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: `Summarise the top comments in https://news.ycombinator.com/item?id=${hnStoryId}` }],
-            max_tokens: 200,
-        }),
-    });
+async function aiSummarizeText(comments, apiKey) {
+    const prompt = `Summarise these comments: ${comments}`;
 
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || "Error summarizing text.";
+    // const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    //     method: "POST",
+    //     headers: {
+    //         "Content-Type": "application/json",
+    //         "Authorization": `Bearer ${apiKey}`,
+    //     },
+    //     body: JSON.stringify({
+    //         model: "gpt-4o",
+    //         messages: [{ role: "user", content:  prompt}],
+    //         max_tokens: 200,
+    //     }),
+    // });
+
+    // const data = await response.json();
+    // return data.choices?.[0]?.message?.content || "Error summarizing text.";
+
+    return comments;
 }
 
 function showSummaryPopup(commentsSummary) {
@@ -192,7 +194,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             }
 
             let commentsSummary = await summarizeHNComments(hnStoryId);
-            chrome.runtime.sendMessage({ summary: commentsSummary,  hnStoryId: hnStoryId});
+            chrome.runtime.sendMessage({ summary: commentsSummary});
         });
     }
 });
