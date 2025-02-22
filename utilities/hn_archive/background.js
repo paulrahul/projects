@@ -139,6 +139,24 @@ async function summarizeHNComments(hnStoryId) {
     return topComments;
 }
 
+async function aiSummarizeText(hnStoryId, apiKey) {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: `Summarise the top comments in https://news.ycombinator.com/item?id=${hnStoryId}` }],
+            max_tokens: 200,
+        }),
+    });
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Error summarizing text.";
+}
+
 function showSummaryPopup(commentsSummary) {
     const summaryText = `📌 **HN Comments Summary:**\n${commentsSummary}`;
     showNotification("HN Comments Summary", summaryText);
@@ -158,41 +176,39 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             }
         });
     } else if (info.menuItemId === "summary") {
-        // showNotification("Summarizing...", "Fetching top comments summary...");
+        await doWithRetries(async () => {
+            // Open the popup with the summary
+            chrome.windows.create({
+                url: chrome.runtime.getURL("popup/popup.html"),
+                type: "popup",
+                width: 500,
+                height: 500
+            });
 
-        // await doWithRetries(async () => {
-        //     const hnStoryId = await getHNEntry(tab.url);
-        //     let commentsSummary = "No Hacker News post found for this link";
+            let hnStoryId = await getHNEntry(tab.url);
+            if (!hnStoryId) {
+                showNotification("Not Found", "No Hacker News post found for this link");
+                return;
+            }
 
-        //     if (hnStoryId) {
-        //         commentsSummary = await summarizeHNComments(hnStoryId);
-        //     }
+            let commentsSummary = await summarizeHNComments(hnStoryId);
+            chrome.runtime.sendMessage({ summary: commentsSummary,  hnStoryId: hnStoryId});
+        });
+    }
+});
 
-        //     showSummaryPopup(commentsSummary);
-        // });
-
-        // Open the popup with the summary
-        chrome.windows.create({
-            url: chrome.runtime.getURL("popup/popup.html"),
-            type: "popup",
-            width: 500,
-            height: 500
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "fetch_ai_summary") {
+        doWithRetries(async () => {
+            try {
+                let aiSummary = await aiSummarizeText(message.hnStoryId, message.apiKey);
+                sendResponse({ ai_summary: aiSummary });
+            } catch (error) {
+                console.error("AI Summary error:", error);
+                sendResponse({ ai_summary: "Error fetching AI summary." });
+            }
         });
 
-        let hnStoryId = await getHNEntry(tab.url);
-        if (!hnStoryId) {
-            showNotification("Not Found", "No Hacker News post found for this link");
-            return;
-        }
-
-        let commentsSummary = await summarizeHNComments(hnStoryId);
-        chrome.runtime.sendMessage({ summary: commentsSummary });
-
-        // // Send data to popup
-        // chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        //     if (message.request === "getSummary") {
-        //         sendResponse({ summary: commentsSummary });
-        //     }
-        // });
+        return true; // Keep message channel open for async response
     }
 });
