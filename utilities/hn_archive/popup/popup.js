@@ -21,22 +21,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     const saveKeyBtn = document.getElementById("save-key");
     // const getSummaryBtn = document.getElementById("get-summary");
     const getAISummaryBtn = document.getElementById("get-ai-summary");
+    const apiKeyTooltip = document.getElementById("api-key-tooltip");
 
     // Load API Key from Chrome Storage
     chrome.storage.local.get("hane_openai_key", (data) => {
-        if (data.openai_key) {
+        if (data.hane_openai_key) {
             apiKeyInput.value = "********"; // Hide actual key
+            saveKeyBtn.textContent = "Edit";
         }
     });
 
     // Save API Key
     saveKeyBtn.addEventListener("click", () => {
-        const key = apiKeyInput.value.trim();
-        if (key) {
-            chrome.storage.local.set({ "hane_openai_key": key }, () => {
-                alert("API Key saved!");
-                apiKeyInput.value = "********"; // Hide after saving
-            });
+        if (saveKeyBtn.textContent === "Edit") {
+            apiKeyInput.value = "";
+            apiKeyInput.focus();
+            saveKeyBtn.textContent = "Save";
+        } else {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                chrome.storage.local.set({ "hane_openai_key": key }, () => {
+                    alert("API Key saved!");
+                    apiKeyInput.value = "********"; // Hide after saving
+                    saveKeyBtn.textContent = "Edit";
+
+                    apiKeyInput.classList.remove("error");
+                    apiKeyTooltip.style.display = "none";
+                });
+            }
         }
     });
 
@@ -46,11 +58,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         const hnStoryId = document.getElementById("hnStoryId").value;
         chrome.storage.local.get("hane_openai_key", (data) => {
             if (!data.hane_openai_key) {
-                aiSummaryDiv.textContent = "No API key saved. Please enter one.";
+                // aiSummaryDiv.textContent = "No API key saved. Please enter one.";
+                
+                apiKeyInput.classList.add("error");
+                apiKeyTooltip.style.display = "block";
+                apiKeyInput.focus();
                 return;
             }
+            apiKeyInput.classList.remove("error");
+            apiKeyTooltip.style.display = "none";
+
             chrome.runtime.sendMessage({ action: "fetch_ai_summary", apiKey: data.hane_openai_key, hnStoryId: hnStoryId }, (response) => {
                 aiSummaryDiv.textContent = response ? response.ai_summary : "Error generating AI summary.";
+                getAISummaryBtn.style.display = "none";
             });
         });
     });

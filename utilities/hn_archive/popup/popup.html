@@ -6,23 +6,30 @@
     <title>Hacker News Summary</title>
     <style>
         body { font-family: Arial, sans-serif; width: 300px; padding: 10px; }
-        #summary, #ai-summary { white-space: pre-wrap; margin-top: 10px; }
-        textarea { width: 100%; height: 50px; }
+        #summary, #ai-summary { white-space: pre-wrap; margin-top: 5px; }
+        h4 { margin-bottom: 2px; }
+        #api-key { width: 140px; padding: 4px; font-size: 12px; }
+        #save-key { padding: 4px 8px; font-size: 12px; margin-left: 5px; }
+        #get-ai-summary { font-size: 12px; padding: 4px 8px; margin-top: 5px; }
+        .error { border: 1px solid red; }
+        .tooltip { color: red; font-size: 10px; display: none; }
     </style>
 </head>
 <body>
 
     <h3>Hacker News Summary</h3>
+
+    <h4>OpenAI API Key</h4>
+    <input type="password" id="api-key" placeholder="Enter API Key">
+    <button id="save-key">Save</button>
+    <div id="api-key-tooltip" class="tooltip">API key required</div>
     
-    <h4>AI Summary:</h4>
-    <button id="get-ai-summary">Get AI Summary</button>
-    <div id="ai-summary">Enter API key and click the button.</div>
+    <h4>AI Summary</h4>
+    <button id="get-ai-summary">Get AI Summary (will use API key's token) </button>
+    <div id="ai-summary"></div>
 
-    <input type="password" id="api-key" placeholder="Enter your API Key">
-    <button id="save-key">Save Key</button>
-
-    <h4>Hacker News comments:</h4>
-    <div id="summary">Fetching Hacker News comments...</div>
+    <h4>Hacker News Comments</h4>
+    <div id="summary">Fetching comments...</div>
 
     <input type="hidden" id="hnStoryId">
 
