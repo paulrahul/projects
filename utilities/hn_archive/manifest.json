@@ -3,7 +3,7 @@
   "name": "HN Archive Link Finder",
   "version": "1.0",
   "description": "Find and open the archive link for the current page's Hacker News entry.",
-  "permissions": ["tabs", "activeTab", "scripting", "storage"],
+  "permissions": ["tabs", "activeTab", "scripting", "storage", "notifications", "contextMenus"],
   "background": {
     "service_worker": "background.js"
   },

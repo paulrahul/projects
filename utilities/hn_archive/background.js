@@ -1,3 +1,12 @@
+// Create the context menu on extension startup
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.create({
+        id: "hackedNewsPost",
+        title: "Hacked News post",
+        contexts: ["all"] // Show on all pages
+    });
+});
+
 async function getHNEntry(url) {
     async function searchHN(query) {
         let searchUrl = `https://hn.algolia.com/api/v1/search?query=${query}&tags=story`;
@@ -38,13 +47,53 @@ async function getArchiveLink(hnStoryId) {
     return null;
 }
 
+function showNotification(title, message) {
+    chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: title,
+        message: message
+    });
+}
+
+function sendErrorReport(error) {
+    const reportData = {
+        access_key: "0b16b735-8eea-4343-ae9c-d607e1a00e79",
+        subject: "HaNe Error Report",
+        message: `Error: ${error.toString()}\nStack: ${error.stack || "No stack trace"}\nTime: ${new Date().toISOString()}`,
+        replyTo: "hane.extension@gmail.com"
+    };
+
+    fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportData)
+    })
+    .then(response => console.log("Error report sent:", response.status))
+    .catch(err => console.error("Failed to send error report:", err));
+}
+
+async function doWithRetries(fn, retries = 2) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await fn();  // Call the function passed as argument
+        } catch (error) {
+            if (attempt === retries) {
+                showNotification("Error", "Encountered repeated errors, please retry later. Last error:" + error);
+                sendErrorReport(error);
+            } else {
+                showNotification("Error", "An error occurred, retrying...");
+            }
+        }
+    }
+}
+
 chrome.action.onClicked.addListener(async (tab) => {
     // Show busy state
     chrome.action.setBadgeText({ text: "🔍", tabId: tab.id });
     chrome.action.setBadgeBackgroundColor({ color: "#FF5733" });
 
-    try {
-
+    await doWithRetries(async () => {
         let hnStoryId = await getHNEntry(tab.url);
         
         if (hnStoryId) {
@@ -53,18 +102,30 @@ chrome.action.onClicked.addListener(async (tab) => {
             if (archiveLink) {
                 chrome.tabs.create({ url: archiveLink, index: tab.index + 1 });
             } else {
-                console.log("No archive link found for this article.");
+                showNotification("No Archive Link Found", "No archive link found for this article");
             }
         } else {
-            console.log("No Hacker News entry found for this article.");
+            showNotification("Not Found", "No Hacker News post found for this link");
         }
-
-    } catch (error) {
-        console.error("Error:", error);
-        alert("An error occurred.");
-    }
+    });
 
     // Clear busy state
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setBadgeBackgroundColor({ color: [0, 0, 0, 0] });
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId === "hackedNewsPost") {
+
+        await doWithRetries(async () => {
+            let hnStoryId = await getHNEntry(tab.url);
+            
+            if (hnStoryId) {
+                let hnUrl = `https://news.ycombinator.com/item?id=${hnStoryId}`;
+                chrome.tabs.create({ url: hnUrl, index: tab.index + 1 });
+            } else {
+                showNotification("Not Found", "No Hacker News post found for this link");
+            }
+        });
+    }
 });
