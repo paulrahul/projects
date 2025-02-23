@@ -25,10 +25,10 @@ async function getHNEntry(url) {
     let hnStoryId = await searchHN(url);
     
     // If no result, retry by stripping query parameters from the URL
-    if (!hnStoryId) {
-        let cleanUrl = url.split("?")[0];  // Remove query params
-        hnStoryId = await searchHN(cleanUrl);
-    }
+    // if (!hnStoryId) {
+    //     let cleanUrl = url.split("?")[0];  // Remove query params
+    //     hnStoryId = await searchHN(cleanUrl);
+    // }
 
     return hnStoryId;
 }
@@ -190,6 +190,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             let hnStoryId = await getHNEntry(tab.url);
             if (!hnStoryId) {
                 showNotification("Not Found", "No Hacker News post found for this link");
+                chrome.runtime.sendMessage({ summary: ["No Hacker News post found for this link"]});
                 return;
             }
 
