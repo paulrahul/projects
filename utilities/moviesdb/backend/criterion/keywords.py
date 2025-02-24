@@ -66,6 +66,17 @@ def _prepare_combined_df():
         axis=1
     )
     
+    merged.loc[merged['closet_pick_url'].isna(), 'closet_pick_url'] = merged['closet_pick_url_new']
+    merged.loc[merged['closet_pick_url_new'].notna(), 'closet_pick_url'] = merged.apply(
+        lambda row: ', '.join(sorted(set(
+            filter(None, 
+                  (row['closet_pick_url'].split(', ') if pd.notna(row['closet_pick_url']) else []) +
+                  (row['closet_pick_url_new'].split(', ') if pd.notna(row['closet_pick_url_new']) else [])
+            )
+        ))) if pd.notna(row['closet_pick_url_new']) else row['closet_pick_url'],
+        axis=1
+    )
+    
     # Add new entries from raw_df that don't exist in preprocessed
     new_entries = raw_grouped[~raw_grouped['Title'].isin(preprocessed['Title'])]
     

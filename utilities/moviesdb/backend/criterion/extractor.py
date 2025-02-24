@@ -30,6 +30,23 @@ logger = logging.getLogger(__name__)
 CSV_FILE = resolved_file_path("criterion/preprocessed.csv")
 DUMP_CSV_FILE = resolved_file_path("criterion/raw_dump.csv")
 
+def _extract_closet_name(url):
+    """
+    Extract the last part of a URL path.
+    Example:
+    Input: https://www.criterion.com/shop/collection/741-isabelle-huppert-s-closet-picks
+    Output: 741-isabelle-huppert-s-closet-picks
+    """
+    import re
+    
+    # Match the last segment of the URL path
+    pattern = r'/([^/]+)/?$'
+    match = re.search(pattern, url)
+    
+    if match:
+        return match.group(1)
+    return url
+
 def _extract_name_regex(url):
     pattern = r'collection/\d+-([\w-]+?)(?:-s)?-closet-picks'
     match = re.search(pattern, url)
@@ -130,7 +147,7 @@ class CriterionDataCollector:
                         
                         # Hidden columns
                         'movie_url': movie_url,                        
-                        'closet_pick_url': closet_pick_url
+                        'closet_pick_url': _extract_closet_name(closet_pick_url)
                     })
                     
                     self.collected_movies += 1
