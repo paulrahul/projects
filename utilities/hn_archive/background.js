@@ -166,6 +166,42 @@ function showSummaryPopup(commentsSummary) {
     showNotification("HN Comments Summary", summaryText);
 }
 
+let popupWindowId = null;
+
+function createNewPopup() {
+    chrome.windows.create({
+      url: chrome.runtime.getURL("popup/popup.html"),
+      type: "popup",
+      width: 500,
+      height: 500
+    }, function(window) {
+      // Store the new window ID
+      popupWindowId = window.id;
+      
+      // Add an event listener to reset the ID when the window is closed
+      chrome.windows.onRemoved.addListener(function onWindowRemoved(windowId) {
+        if (windowId === popupWindowId) {
+          popupWindowId = null;
+          chrome.windows.onRemoved.removeListener(onWindowRemoved);
+        }
+      });
+    });
+}  
+
+// Function to open a new popup
+function openPopup() {
+    // Close any existing popup first
+    if (popupWindowId !== null) {
+      chrome.windows.remove(popupWindowId, function() {
+        // After closing, create the new popup
+        createNewPopup();
+      });
+    } else {
+      // No existing popup, just create a new one
+      createNewPopup();
+    }
+}
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "hackedNewsPost") {
 
@@ -182,13 +218,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     } else if (info.menuItemId === "summary") {
         await doWithRetries(async () => {
             // Open the popup with the summary
-            chrome.windows.create({
-                url: chrome.runtime.getURL("popup/popup.html"),
-                type: "popup",
-                width: 500,
-                height: 500
-            });
+            // chrome.windows.create({
+            //     url: chrome.runtime.getURL("popup/popup.html"),
+            //     type: "popup",
+            //     width: 500,
+            //     height: 500
+            // });
 
+            openPopup();
             let hnStoryId = await getHNEntry(tab.url);
             if (!hnStoryId) {
                 showNotification("Not Found", "No Hacker News post found for this link");
