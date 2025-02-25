@@ -13,7 +13,8 @@
         #get-ai-summary { font-size: 12px; padding: 4px 8px; margin-top: 5px; }
         .error { border: 1px solid red; }
         .tooltip { color: red; font-size: 10px; display: none; }
-        #more-comments { display: none; margin-top: 5px; cursor: pointer; color: blue; text-decoration: underline; }
+        #comment-controls { display: flex; gap: 10px; margin-top: 5px; }
+        #more-comments, #prev-comments { cursor: pointer; color: blue; text-decoration: underline; display: none; }
     </style>
 </head>
 <body>
@@ -31,7 +32,10 @@
 
     <h4>Hacker News Comments</h4>
     <div id="summary">Fetching comments...</div>
-    <div id="more-comments">More</div>
+    <div id="comment-controls">
+        <div id="prev-comments">Previous</div>
+        <div id="more-comments">More</div>
+    </div>
 
     <input type="hidden" id="allComments">
 

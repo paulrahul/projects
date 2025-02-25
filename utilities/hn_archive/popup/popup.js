@@ -4,6 +4,8 @@ let currentIndex = 0;
 function displayComments() {
     let commentsToShow = allComments.slice(currentIndex, currentIndex + 5).join("\n\n");
     document.getElementById("summary").innerText = decodeHTMLEntities(commentsToShow);
+    document.getElementById("prev-comments").style.display = currentIndex > 0 ? "block" : "none";
+    document.getElementById("more-comments").style.display = currentIndex + 5 < allComments.length ? "block" : "none";
 }
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -59,6 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const getAISummaryBtn = document.getElementById("get-ai-summary");
     const apiKeyTooltip = document.getElementById("api-key-tooltip");
     const moreCommentsBtn = document.getElementById("more-comments");
+    const prevCommentsBtn = document.getElementById("prev-comments");
 
     // Load API Key from Chrome Storage
     chrome.storage.local.get("hane_openai_key", (data) => {
@@ -119,9 +122,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     moreCommentsBtn.addEventListener("click", () => {
         currentIndex += 5;
-        if (currentIndex + 5 >= allComments.length) {
-            moreCommentsBtn.style.display = "none";
-        }
+        // if (currentIndex + 5 >= allComments.length) {
+        //     moreCommentsBtn.style.display = "none";
+        // }
+        displayComments();
+    });
+
+    prevCommentsBtn.addEventListener("click", () => {
+        currentIndex = Math.max(0, currentIndex - 5);
         displayComments();
     });
 });
