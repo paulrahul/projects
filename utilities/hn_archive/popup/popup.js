@@ -1,12 +1,22 @@
+let allComments = [];
+let currentIndex = 0;
+
+function displayComments() {
+    let commentsToShow = allComments.slice(currentIndex, currentIndex + 5).join("\n\n");
+    document.getElementById("summary").innerText = decodeHTMLEntities(commentsToShow);
+}
+
 chrome.runtime.onMessage.addListener((message) => {
     if (message.summary) {
-        let comments = message.summary
-            .slice(0, 5)
-            .join("\n\n");
+        allComments = message.summary;
+        currentIndex = 0;
+        displayComments();
+        if (allComments.length > 5) {
+            document.getElementById("more-comments").style.display = "block";
+        }
+        // document.getElementById("summary").innerText = decodeHTMLEntities(comments);
 
-        document.getElementById("summary").innerText = decodeHTMLEntities(comments);
-
-        document.getElementById("allComments").value = decodeHTMLEntities(message.summary.join("\n\n"));
+        document.getElementById("allComments").value = decodeHTMLEntities(allComments.join("\n\n"));
         document.getElementById("get-ai-summary").disabled = false;
     }
 });
@@ -48,6 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // const getSummaryBtn = document.getElementById("get-summary");
     const getAISummaryBtn = document.getElementById("get-ai-summary");
     const apiKeyTooltip = document.getElementById("api-key-tooltip");
+    const moreCommentsBtn = document.getElementById("more-comments");
 
     // Load API Key from Chrome Storage
     chrome.storage.local.get("hane_openai_key", (data) => {
@@ -104,6 +115,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             const summary = await aiSummarizeText(allComments, data.hane_openai_key);
             aiSummaryDiv.textContent = summary ? summary : "Error generating AI summary.";
         });
+    });
+
+    moreCommentsBtn.addEventListener("click", () => {
+        currentIndex += 5;
+        if (currentIndex + 5 >= allComments.length) {
+            moreCommentsBtn.style.display = "none";
+        }
+        displayComments();
     });
 });
 
