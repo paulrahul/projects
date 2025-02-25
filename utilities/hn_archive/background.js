@@ -122,18 +122,20 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 async function summarizeHNComments(hnStoryId) {
-    const hnApiUrl = `https://hn.algolia.com/api/v1/items/${hnStoryId}`;
+    // const hnApiUrl = `https://hn.algolia.com/api/v1/items/${hnStoryId}`;
+    const hnApiUrl = `https://hn.algolia.com/api/v1/search_by_date?tags=comment,story_${hnStoryId}&hitsPerPage=1000`
     const response = await fetch(hnApiUrl);
     const data = await response.json();
 
-    if (!data.children || data.children.length === 0) {
+    if (!data.hits || data.hits.length === 0) {
         return "No comments available.";
     }
 
-    const topComments = data.children
-        .filter(comment => comment.text)
-        .map(comment => comment.text.replace(/<\/?[^>]+(>|$)/g, "")) // Remove HTML tags
+    // const topComments = data.children
+    //     .filter(comment => comment.text)
+    //     .map(comment => comment.text.replace(/<\/?[^>]+(>|$)/g, "")) // Remove HTML tags
 
+    const topComments = data.hits.map(entry => entry.comment_text)
     return topComments;
 }
 
