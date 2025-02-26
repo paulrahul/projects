@@ -3,7 +3,10 @@ let currentIndex = 0;
 
 function displayComments() {
     let commentsToShow = allComments.slice(currentIndex, currentIndex + 5).join("\n\n");
-    document.getElementById("summary").innerText = decodeHTMLEntities(commentsToShow);
+    let decodedContent = decodeHTMLEntities(commentsToShow);
+    let sanitizedContent = DOMPurify.sanitize(decodedContent);
+    document.getElementById("summary").innerHTML = sanitizedContent;
+
     document.getElementById("prev-comments").style.display = currentIndex > 0 ? "block" : "none";
     document.getElementById("more-comments").style.display = currentIndex + 5 < allComments.length ? "block" : "none";
 }
