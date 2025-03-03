@@ -14,7 +14,20 @@
         .error { border: 1px solid red; }
         .tooltip { color: red; font-size: 10px; display: none; }
         #comment-controls { display: flex; gap: 10px; margin-top: 5px; }
+        #ai-controls { display: flex; gap: 5px; align-items: center; }
         #more-comments, #prev-comments { cursor: pointer; color: blue; text-decoration: underline; display: none; }
+        #model-select {
+            font-size: 12px;
+            padding: 4px 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+        }
+        #model-select:focus {
+            border-color: #007bff;
+            outline: none;
+        }        
     </style>
 </head>
 <body>
@@ -27,7 +40,13 @@
     <div id="api-key-tooltip" class="tooltip">API key required</div>
     
     <h4>AI Summary</h4>
-    <button id="get-ai-summary" disabled>Get AI Summary (will use API key's token) </button>
+    <div id="ai-controls">
+        <button id="get-ai-summary" disabled>AI Summary (Uses API Key)</button>
+        <select id="model-select">
+            <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+            <option value="gpt-4o">GPT-4o</option>
+        </select>
+    </div>
     <div id="ai-summary"></div>
 
     <h4>Hacker News Comments</h4>

@@ -32,8 +32,17 @@ function decodeHTMLEntities(text) {
     return textarea.value;
 }
 
+const MAX_TOKENS = 16000; // Safe buffer within 16385 limit
+const APPROX_CHAR_PER_TOKEN = 4; // Rough estimate for English text
+const MAX_CHARS = MAX_TOKENS * APPROX_CHAR_PER_TOKEN; // Limit input size
+
 async function aiSummarizeText(comments, apiKey) {
-    const prompt = `Summarise these comments: ${comments}`;
+    const truncatedComments = comments.length > MAX_CHARS 
+    ? comments.slice(0, MAX_CHARS) + "..." 
+    : comments;
+
+    const model = document.getElementById("model-select").value; // Get selected model
+    const prompt = `Summarise these comments: ${truncatedComments}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -42,16 +51,14 @@ async function aiSummarizeText(comments, apiKey) {
             "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-            // model: "gpt-4o",
-            model: "gpt-3.5-turbo",
+            model: model,
             messages: [{ role: "user", content:  prompt}],
             max_tokens: 200,
         }),
     });
 
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || "Error summarizing text.";
-
+    return data.choices?.[0]?.message?.content || null;
     // return comments;
 }
 
@@ -65,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const apiKeyTooltip = document.getElementById("api-key-tooltip");
     const moreCommentsBtn = document.getElementById("more-comments");
     const prevCommentsBtn = document.getElementById("prev-comments");
+    const aiModelDropDown = document.getElementById("model-select");
 
     // Load API Key from Chrome Storage
     chrome.storage.local.get("hane_openai_key", (data) => {
@@ -109,8 +117,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             apiKeyInput.classList.remove("error");
             apiKeyTooltip.style.display = "none";
 
-            aiSummaryDiv.textContent = "Generating AI summary...";
+            const model = aiModelDropDown.value; // Get selected model
+            aiSummaryDiv.textContent = `Generating AI summary using model ${model}...`;
             getAISummaryBtn.style.display = "none";
+            aiModelDropDown.style.display = "none";
             const allComments = document.getElementById("allComments").value;
 
             // chrome.runtime.sendMessage({ action: "fetch_ai_summary", apiKey: data.hane_openai_key, comments: allComments }, (response) => {
@@ -119,7 +129,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             // });
 
             const summary = await aiSummarizeText(allComments, data.hane_openai_key);
-            aiSummaryDiv.textContent = summary ? summary : "Error generating AI summary.";
+            if (summary) {
+                aiSummaryDiv.textContent = summary;
+            } else {
+                aiSummaryDiv.textContent = "Error generating AI summary.";
+            }
+            getAISummaryBtn.style.display = "block";
+            aiModelDropDown.style.display = "block";
         });
     });
 

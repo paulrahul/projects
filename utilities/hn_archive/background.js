@@ -16,7 +16,8 @@ chrome.runtime.onInstalled.addListener(() => {
 
 async function getHNEntry(url) {
     async function searchHN(query) {
-        let searchUrl = `https://hn.algolia.com/api/v1/search?query=${query}&tags=story`;
+        const searchQuery = encodeURIComponent(query);
+        let searchUrl = `https://hn.algolia.com/api/v1/search?query=${searchQuery}&tags=story&restrictSearchableAttributes=url`;
         let response = await fetch(searchUrl);
         let data = await response.json();
         return data.hits.length > 0 ? data.hits[0].objectID : null;
@@ -128,7 +129,7 @@ async function summarizeHNComments(hnStoryId) {
     const data = await response.json();
 
     if (!data.hits || data.hits.length === 0) {
-        return "No comments available.";
+        return ["No comments available."];
     }
 
     // const topComments = data.children
@@ -234,7 +235,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             }
 
             let commentsSummary = await summarizeHNComments(hnStoryId);
-            chrome.runtime.sendMessage({ summary: commentsSummary});
+            if (commentsSummary) {
+                chrome.runtime.sendMessage({ summary: commentsSummary});
+            }
         });
     }
 });
