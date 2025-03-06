@@ -42,7 +42,7 @@ async function aiSummarizeText(comments, apiKey) {
     : comments;
 
     const model = document.getElementById("model-select").value; // Get selected model
-    const prompt = `Summarise these comments: ${truncatedComments}`;
+    const prompt = `Summarise the following comments. Your response should contain two sections: 1. A para with the overall summary 2. A few bullet points highlighting the main opinions. Comments: ${truncatedComments}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
