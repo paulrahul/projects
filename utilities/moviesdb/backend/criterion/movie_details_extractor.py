@@ -33,6 +33,7 @@ def extract_film_metadata(url):
         metadata['title'] = soup.find('meta', property='og:title')['content'] if soup.find('meta', property='og:title') else None
         metadata['description'] = soup.find('meta', property='og:description')['content'] if soup.find('meta', property='og:description') else None
         metadata['image'] = soup.find('meta', property='og:image')['content'] if soup.find('meta', property='og:image') else None
+        metadata['thumbnail'] = soup.find('meta', property='thumbnail')['content'] if soup.find('meta', property='thumbnail') else None
         
         # Extract country of origin
         country_elem = soup.find('li', {'itemprop': 'countryOfOrigin'})

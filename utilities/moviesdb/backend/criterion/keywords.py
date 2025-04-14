@@ -45,7 +45,8 @@ def _prepare_combined_df():
         'Duration': 'first',     # Take first non-null duration
         'movie_url': 'first',    # Take first non-null movie_url
         'Recommender': lambda x: ', '.join(sorted(set(filter(None, x)))),  # Combine unique recommenders
-        'closet_pick_url': 'first'  # Take first non-null closet_pick_url
+        'closet_pick_url': 'first',  # Take first non-null closet_pick_url,
+        'Thumbnail': 'first'
     }).reset_index()
     
     # Read the preprocessed data
@@ -83,7 +84,7 @@ def _prepare_combined_df():
     # Combine existing and new entries
     final_df = pd.concat([
         merged[['Title', 'Description', 'Country', 'Year', 'Duration', 
-                'movie_url', 'Recommender', 'closet_pick_url', 'Keywords']],
+                'movie_url', 'Recommender', 'closet_pick_url', 'Keywords', 'Thumbnail']],
         new_entries
     ], ignore_index=True)
     

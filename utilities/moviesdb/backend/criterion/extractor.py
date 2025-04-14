@@ -137,8 +137,8 @@ class CriterionDataCollector:
                         
                     self.movie_data.append({
                         'Title': metadata.get('title', ''),
-                        # 'Thumbnail': metadata.get('image', ''),
-                        'Thumbnail': '',
+                        'Thumbnail': metadata.get('thumbnail', ''),
+                        # 'Thumbnail': '',
                         'Recommender': _extract_name_regex(closet_pick_url),
                         'Description': metadata.get('description', ''),
                         'Country': metadata.get('country', ''),

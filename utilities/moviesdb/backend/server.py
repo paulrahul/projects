@@ -6,11 +6,18 @@ import threading
 import schedule
 import time
 import datetime
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 from langchain_experimental.agents import create_pandas_dataframe_agent
+from langchain.prompts import MessagesPlaceholder, SystemMessagePromptTemplate
+from langchain.prompts.chat import ChatPromptTemplate
+from langchain.agents.agent_types import AgentType
+from langchain_core.messages import SystemMessage
+
+
 import pandas as pd
 import pickle
 import os
@@ -86,15 +93,39 @@ def update_dataframe():
                 update_condition.wait()  # Wait until all `process_prompt` calls finish
             log.info("Updating dataframe...")
             state["status"] = ServerState.UPDATING
+            
+            # Your system prompt
+            # system_message = """You are an experienced data science engineer having expertise in movies from around the world, especially Criterion collection movies. Use the provided CSV for getting answers to Criterion recommendations queries. Whenever your response has a name(s) of movies, make sure you list the movie(s) separately in this format: movie name, movie url, thumbnail"""
+            
+            # system_message = SystemMessage(content="""You are an experienced data science engineer having expertise in movies from around the world, especially Criterion collection movies. Use the provided CSV for getting answers to Criterion recommendations queries. Whenever your response has a name(s) of movies, make sure you list the movie(s) separately in this format: movie name, movie url, thumbnail""")
+            
+            
+            # # Optional: Create a custom chat prompt with system role
+            # custom_prompt = ChatPromptTemplate.from_messages([
+            #     SystemMessagePromptTemplate.from_template(system_prompt),
+            #     MessagesPlaceholder(variable_name="chat_history"),
+            # ])
 
             df = load_dataframe()
-            llm = ChatOpenAI(model="gpt-4o", temperature=0)
+            llm = ChatOpenAI(
+                model="gpt-4o",
+                temperature=0
+                # prefix=system_message
+                # model_kwargs={
+                #     "prefix": system_message,
+                #     # "default_messages": [system_message]
+                # }
+            )
+
             agent_executor = create_pandas_dataframe_agent(
                 llm,
                 df,
                 verbose=True,
                 allow_dangerous_code=True
+                # agent_type=AgentType.OPENAI_FUNCTIONS  # Make sure to use this agent type for better compatibility
             )
+            
+            # agent_executor.agent.llm_chain.prompt = custom_prompt
 
             state["status"] = ServerState.READY
             log.info("Dataframe updated")
@@ -119,6 +150,10 @@ class PromptRequest(BaseModel):
 def get_status():
     return {"status": state["status"]}
 
+message_template = """You are an experienced data science engineer having expertise in movies from around the world, especially Criterion collection movies. Use the provided CSV for getting answers to Criterion recommendations queries. If your response has a name(s) of movies, make sure you list the movie(s) separately in this format: movie name, movie url, thumbnail
+My query is: {query}
+"""
+
 @app.post("/prompt")
 def process_prompt(request: PromptRequest):
     global reader_count
@@ -129,7 +164,7 @@ def process_prompt(request: PromptRequest):
         reader_count += 1  # Increment active reader count
 
     try:
-        response = agent_executor.invoke(request.prompt, handle_parsing_errors=True)
+        response = agent_executor.invoke(message_template.format(query=request.prompt), handle_parsing_errors=True)
         return {"response": response["output"]}
     except Exception as e:
         log.error("Error processing prompt: %s", e)
