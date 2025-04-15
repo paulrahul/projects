@@ -16,6 +16,8 @@ from langchain.prompts import MessagesPlaceholder, SystemMessagePromptTemplate
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.agents.agent_types import AgentType
 from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage
+from langchain_core.output_parsers import JsonOutputParser
 
 
 import pandas as pd
@@ -108,7 +110,7 @@ def update_dataframe():
 
             df = load_dataframe()
             llm = ChatOpenAI(
-                model="gpt-4o",
+                model="gpt-3.5-turbo",
                 temperature=0
                 # prefix=system_message
                 # model_kwargs={
@@ -121,8 +123,8 @@ def update_dataframe():
                 llm,
                 df,
                 verbose=True,
-                allow_dangerous_code=True
-                # agent_type=AgentType.OPENAI_FUNCTIONS  # Make sure to use this agent type for better compatibility
+                allow_dangerous_code=True,
+                agent_type=AgentType.OPENAI_FUNCTIONS  # Make sure to use this agent type for better compatibility
             )
             
             # agent_executor.agent.llm_chain.prompt = custom_prompt
@@ -150,7 +152,10 @@ class PromptRequest(BaseModel):
 def get_status():
     return {"status": state["status"]}
 
-message_template = """You are an experienced data science engineer having expertise in movies from around the world, especially Criterion collection movies. Use the provided CSV for getting answers to Criterion recommendations queries. If your response has a name(s) of movies, make sure you list the movie(s) separately in this format: movie name, movie url, thumbnail
+message_template = """You are an experienced data science engineer having expertise in movies from around the world, especially Criterion collection movies. Use the provided CSV for getting answers to Criterion recommendations queries. 
+
+Your response should be in a valid JSON format. If your response has a name(s) of movies, make sure you list the movie(s) separately in a JSON array field called 'movies' with each element having keys: movie name, movie url, thumbnail. You must always return valid JSON fenced by a markdown code block. Do not return any additional text.
+
 My query is: {query}
 """
 
