@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .search-container {
+            margin-top: 4rem;
+            margin-bottom: 2rem;
+        }
+        .prompt-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            background-color: #f7fafc;
+            color: #1a202c;
+            overflow-wrap: break-word;
+        }
+        .response-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            background-color: #ffffff;
+            color: #1a202c;
+            overflow-wrap: break-word;
+        }
+        .movie-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+        .movie-table thead th {
+            background-color: #f7fafc;
+            color: #4a5568;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .movie-table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        .movie-table tbody tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+        .movie-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .movie-table img {
+            max-width: 100px;
+            height: auto;
+            border-radius: 0.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .movie-link {
+            color: #0078d7;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .movie-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .search-container {
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+            }
+            .movie-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            .movie-table thead, .movie-table tbody, .movie-table tr, .movie-table td, .movie-table th {
+                display: block;
+            }
+            .movie-table thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            .movie-table tr {
+                border: 1px solid #e2e8f0;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                padding: 0.75rem;
+                background-color: #fff;
+            }
+            .movie-table td {
+                border: none;
+                border-bottom: 1px solid #e2e8f0;
+                padding-left: 1.25rem;
+                position: relative;
+            }
+            .movie-table td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0.25rem;
+                font-weight: 600;
+                color: #4a5568;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-start justify-center">
+    <div class="max-w-3xl w-full px-4">
+        <div class="search-container">
+            <input
+                type="text"
+                id="prompt-input"
+                placeholder="Enter your prompt (e.g., Which decade has the most recommendations?)"
+                class="w-full px-4 py-2 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+            />
+            <button id="submit-prompt" class="mt-2 w-full bg-blue-500 hover:bg-blue-700 text-white font-semibold rounded-md py-2 px-4 focus:outline-none focus:shadow-outline">
+                Get Response
+            </button>
+        </div>
+        <div id="prompt-display" class="prompt-box hidden">
+            <h3 class="text-lg font-semibold mb-2">Your Prompt:</h3>
+            <p id="prompt-text"></p>
+        </div>
+        <div id="response-display" class="response-box hidden">
+            <h3 class="text-lg font-semibold mb-2">Server Response:</h3>
+            <div id="response-text"></div>
+        </div>
+    </div>
+    <script>
+        const promptInput = document.getElementById("prompt-input");
+        const submitButton = document.getElementById("submit-prompt");
+        const promptDisplay = document.getElementById("prompt-display");
+        const promptText = document.getElementById("prompt-text");
+        const responseDisplay = document.getElementById("response-display");
+        const responseText = document.getElementById("response-text");
+
+        submitButton.addEventListener("click", () => {
+            const prompt = promptInput.value.trim();
+            if (prompt === "") {
+                alert("Please enter a prompt.");
+                return;
+            }
+            promptText.textContent = prompt;
+            promptDisplay.classList.remove("hidden");
+            responseDisplay.classList.add("hidden");
+            responseText.innerHTML = "";
+            const url = `http://localhost:8000/prompt`;
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ prompt: prompt }),
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    responseDisplay.classList.remove("hidden");
+                    let responseContent = "";
+                    if (data.response) {
+                        // Remove ```json\n and \n```
+                        let cleanedResponse = data.response.replace(/```json\n/g, '').replace(/\n```/g, '');
+                        console.log(cleanedResponse);
+                        try {
+                            const parsedResponse = JSON.parse(cleanedResponse);
+                            if ("movies" in parsedResponse && Array.isArray(parsedResponse["movies"])) {
+                                responseContent = generateTableFromArray(parsedResponse["movies"]);
+                            } else if (typeof parsedResponse === 'object' && parsedResponse !== null) {
+                                responseContent = generateTableFromObject(parsedResponse);
+                            }
+                             else {
+                                responseContent = `<pre class="text-sm bg-gray-100 p-2 rounded-md overflow-x-auto">${cleanedResponse}</pre>`;
+                            }
+                        } catch (error) {
+                            responseContent = `<pre class="text-sm bg-gray-100 p-2 rounded-md overflow-x-auto">${cleanedResponse}</pre>`;
+                        }
+                    } else {
+                        responseContent = `<pre class="text-sm bg-gray-100 p-2 rounded-md overflow-x-auto">No response from server.</pre>`;
+                    }
+                    responseText.innerHTML = responseContent;
+                })
+                .catch((error) => {
+                    responseDisplay.classList.remove("hidden");
+                    responseText.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                    console.error("Fetch error:", error);
+                });
+        });
+        function toSentenceCase(text) {
+            const result = text.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1');
+            return result.charAt(0).toUpperCase() + result.slice(1);
+        }
+
+        function generateTableFromArray(dataArray) {
+            if (!Array.isArray(dataArray) || dataArray.length === 0) {
+                return "<p>No data to display.</p>";
+            }
+            const headers = Object.keys(dataArray[0]);
+            let tableHTML = `<table class="movie-table"><thead><tr>`;
+            headers.forEach(header => {
+                tableHTML += `<th>${toSentenceCase(header)}</th>`;
+            });
+            tableHTML += `</tr></thead><tbody>`;
+            dataArray.forEach(item => {
+                tableHTML += `<tr>`;
+                headers.forEach(header => {
+                    const value = item[header];
+                    const displayValue = value === null ? 'N/A' :
+                        typeof value === 'object' ? JSON.stringify(value) :
+                        typeof value === 'string' ? value : value.toString();
+                    if(header.toLowerCase().includes('url') && typeof value === 'string'){
+                         tableHTML += `<td data-label="${toSentenceCase(header)}"><a href="${value}" class="movie-link" target="_blank" rel="noopener noreferrer">${value}</a></td>`;
+                    }
+                    else if(header.toLowerCase().includes('thumbnail') && typeof value === 'string'){
+                        tableHTML += `<td data-label="${toSentenceCase(header)}"><img src="${value}" alt="Thumbnail"></td>`;
+                    }
+                    else{
+                        tableHTML += `<td data-label="${toSentenceCase(header)}">${displayValue}</td>`;
+                    }
+
+                });
+                tableHTML += `</tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+            return tableHTML;
+        }
+
+        function generateTableFromObject(dataObject) {
+            const keys = Object.keys(dataObject);
+            let tableHTML = `<table class="movie-table"><tbody>`;
+            keys.forEach(key => {
+                const value = dataObject[key];
+                const displayValue = value === null ? 'N/A' :
+                    typeof value === 'object' ? JSON.stringify(value) :
+                    typeof value === 'string' ? value : value.toString();
+                tableHTML += `
+                    <tr>
+                        <td data-label="${toSentenceCase(key)}" class="font-semibold">${toSentenceCase(key)}</td>
+                        <td data-label="${toSentenceCase(key)}">${displayValue}</td>
+                    </tr>
+                `;
+            });
+            tableHTML += `</tbody></table>`;
+            return tableHTML;
+        }
+    </script>
+</body>
+</html>
